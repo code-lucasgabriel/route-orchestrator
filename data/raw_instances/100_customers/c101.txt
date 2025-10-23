@@ -4,7 +4,7 @@ VEHICLE
 NUMBER     CAPACITY
   25         200
 
-CUSTOMER
+CUSTOMER  
 CUST NO.  XCOORD.   YCOORD.    DEMAND   READY TIME  DUE DATE   SERVICE   TIME
  
     0      40         50          0          0       1236          0   
