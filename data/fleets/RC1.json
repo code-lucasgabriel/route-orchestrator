@@ -1,0 +1,26 @@
+[
+  {
+    "type": "A",
+    "count": 10,
+    "capacity": 40,
+    "latest_return_time": 200,
+    "fixed_cost": 60,
+    "variable_cost": 1.0
+  },
+  {
+    "type": "B",
+    "count": 20,
+    "capacity": 80,
+    "latest_return_time": 220,
+    "fixed_cost": 150,
+    "variable_cost": 1.2
+  },
+  {
+    "type": "C",
+    "count": 10,
+    "capacity": 150,
+    "latest_return_time": 240,
+    "fixed_cost": 300,
+    "variable_cost": 1.4
+  }
+]
