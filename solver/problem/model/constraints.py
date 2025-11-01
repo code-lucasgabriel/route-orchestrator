@@ -27,7 +27,7 @@ def allow_unused_vehicles(problem: BaseProblemInstance, sol: BaseSolution) -> bo
 def ensure_depot_return(problem: BaseProblemInstance, sol: BaseSolution) -> bool:
     """ 3. Ensures all vehicles return to the depot at the end of the route """
     for route in sol:
-        if len(route) > 2: 
+        if len(route) >= 2: 
             if route[0] != 0 or route[-1] != 0:
                 # print("VIOLAÇÃO: Rota não começa ou não termina no depósito 0.")
                 return False

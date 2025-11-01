@@ -1,6 +1,5 @@
-from solver.hffvrptw import HFFVRPTWProblem, HFFVRPTWEvaluator
-from np_solver.core import BaseSolution
-# from solver.metaheuristics import SolverTS
+from solver.hffvrptw import HFFVRPTWSolution, HFFVRPTWProblem, HFFVRPTWEvaluator, HFFVRPTWConstructiveHeuristic
+from solver.metaheuristics.ts import ts_tenure5
 
 def run_solver():
     # create and load the problem instance data
@@ -10,45 +9,25 @@ def run_solver():
     evaluator = HFFVRPTWEvaluator(problem)
 
     # ! TEST AND VERIFICATON OF CORRECTEDNESS
-    sol = BaseSolution()
-    sol.extend([
-        [0, 1, 2, 0],
-        [0, 3, 0],     
-        [0, 0],
-        [0, 0],
-        [0, 0],
-        [0, 0],
-        [0, 0],
-        [0, 0],
-        [0, 0],
-        [0, 0],
-        [0, 0],
-        [0, 0],
-        [0, 0],
-        [0, 0],
-        [0, 0],
-    ])
+    constructor = HFFVRPTWConstructiveHeuristic(problem, evaluator)
+    initial_sol = constructor.build()
 
-    print(evaluator.constraints(sol))
-    print(evaluator.evaluate(sol))
+    print(initial_sol)
+
+    print(evaluator.constraints(initial_sol))
+    print(evaluator.evaluate(initial_sol))
 
     # create the metaheuristic solver, passing the evaluator
-    # solver = SolverTS(
-    #     evaluator=evaluator,
-    #     generations=10000,
-    #     pop_size=100,
-    #     mutation_rate=0.01
-    # )
+    solver = ts_tenure5    
 
     # run the solver
-    # print(f"Running the solver for problem {problem.get_instance_name()}")
-    # best_solution = solver.solver()
+    print(f"Running the solver for problem {problem.get_instance_name()}")
+    best_solution = solver.solve(problem, evaluator, initial_sol)
 
     # write results
-    # if best_solution:
-        # print(f"Best solution found!")
-        # print(f"Cost: {best_solution.cost}")
-        # problem.write_results("results/{instance}", best_solution)
+    if best_solution:
+        print(f"Best solution found!")
+        print(f"Cost: {best_solution.cost}")
 
 if __name__=="__main__":
     run_solver()
