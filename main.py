@@ -1,10 +1,11 @@
 from solver.hffvrptw import HFFVRPTWSolution, HFFVRPTWProblem, HFFVRPTWEvaluator, HFFVRPTWConstructiveHeuristic
-from solver.metaheuristics.ts import ts_tenure5
+from solver.metaheuristics.ts import ts_tenure5, ts_tenure0
+from solver.metaheuristics.alns import alns_greedy_lns
 
 def run_solver():
     # create and load the problem instance data
     problem = HFFVRPTWProblem()
-    problem.read_instance("100_customers/R2_1_04.csv")    
+    problem.read_instance("400_customers/C2_4_6.csv")
     # create the evaluator and pass the problem instance data
     evaluator = HFFVRPTWEvaluator(problem)
 
@@ -18,7 +19,7 @@ def run_solver():
     print(evaluator.evaluate(initial_sol))
 
     # create the metaheuristic solver, passing the evaluator
-    solver = ts_tenure5    
+    solver = ts_tenure5
 
     # run the solver
     print(f"Running the solver for problem {problem.get_instance_name()}")

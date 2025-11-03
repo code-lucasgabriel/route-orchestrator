@@ -249,3 +249,49 @@ class HFFVRPTWEvaluator(BaseEvaluator):
         
         new_cost, _ = self._get_route_cost_and_feasibility(new_route, r_idx)
         return new_cost - old_cost
+    
+    def evaluate_insert_use_cost(
+        self, client: int, vehicle_index: int, sol: BaseSolution
+    ) -> float:
+        """
+        Fast O(L) delta-evaluation for an 'insert_use' move.
+        Calculates the cost of a new route [0, client, 0] and
+        subtracts the penalty for not visiting that client.
+        """
+        
+        # 1. Define the new route for the previously unused vehicle
+        new_route = [0, client, 0]
+        
+        # 2. Calculate the cost of this new route
+        # Your _get_route_cost_and_feasibility function is perfect for this.
+        # It correctly calculates fixed_cost + variable_cost
+        # and checks all time window and capacity constraints.
+        (new_route_cost, is_feasible) = self._get_route_cost_and_feasibility(
+            new_route, vehicle_index
+        )
+        
+        # 3. If the move is infeasible (e.g., client can't be
+        # served by this vehicle within TWs), return a high cost.
+        if not is_feasible:
+            return self._get_infeasible_cost() # Or float('inf')
+            
+        # 4. Get the cost that is being *removed*.
+        # The cost of the old route [0, 0] is 0.0 (per your function).
+        # The main cost being removed is the "Big M" penalty
+        # for not visiting this client.
+        try:
+            # This is the "Big M" penalty cost you save.
+            penalty_saved = self.problem.M 
+        except AttributeError:
+            raise AttributeError(
+                "Your problem instance (self.problem) must have an attribute "
+                "'M' that defines the 'Big M' penalty for an unvisited client."
+            )
+
+        # 5. Calculate the delta cost.
+        # delta = (cost_added) - (cost_removed)
+        # cost_added = new_route_cost
+        # cost_removed = penalty_saved
+        delta_cost = new_route_cost - penalty_saved
+        
+        return delta_cost
