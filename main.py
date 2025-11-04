@@ -1,6 +1,8 @@
 from solver.hffvrptw import HFFVRPTWSolution, HFFVRPTWProblem, HFFVRPTWEvaluator, HFFVRPTWConstructiveHeuristic
 from solver.metaheuristics.ts import ts_tenure5, ts_tenure0
 from solver.metaheuristics.alns import alns_greedy_lns
+from utils.capture_output import tee_output
+import os
 
 def run_solver():
     # create and load the problem instance data
@@ -30,5 +32,7 @@ def run_solver():
         print(f"Best solution found!")
         print(f"Cost: {best_solution.cost}")
 
-if __name__=="__main__":
-    run_solver()
+if __name__ == "__main__":
+    os.makedirs("logs", exist_ok=True)
+    with tee_output('logs/solver.log'):
+        run_solver()

@@ -1,5 +1,5 @@
 from np_solver.core import BaseProblemInstance
-from utils import load_instance, log_experiment_data, calculate_adjacency_matrix
+from utils import load_instance, save_solution_json, calculate_adjacency_matrix
 from solver.problem.hffvrptw_solution import HFFVRPTWSolution
 import os
 from settings import RESULTS_PATH
@@ -97,6 +97,6 @@ class HFFVRPTWProblem(BaseProblemInstance):
     def report_experiment(self, filename: str, sol: HFFVRPTWSolution):
         # TODO verify if it is correct and working
         try:
-            log_experiment_data(RESULTS_PATH, filename, sol)
+            save_solution_json(RESULTS_PATH, filename, sol)
         except Exception as e:
             print(f"An error occurred during insertion in the experiment log file for instance {self.get_instance_name()}: {e}")
