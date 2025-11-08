@@ -1,6 +1,6 @@
 from solver.hffvrptw import HFFVRPTWSolution, HFFVRPTWProblem, HFFVRPTWEvaluator, HFFVRPTWConstructiveHeuristic
 from solver.metaheuristics.ts import ts_tenure5, ts_tenure0
-from solver.metaheuristics.alns import alns_greedy_lns
+from solver.metaheuristics.alns import alns_greedy_lns, alns_adaptive_sa
 from settings import INSTANCES
 import os
 import time
@@ -22,6 +22,8 @@ def run_solver_for_instance(instance_path: str, solver_name: str = 'ts_tenure5')
         solver = ts_tenure0
     elif solver_name == 'alns_greedy_lns':
         solver = alns_greedy_lns
+    elif solver_name == 'alns_adaptive_sa':
+        solver = alns_adaptive_sa
     else:
         solver = ts_tenure5
     # Create log directories
@@ -146,7 +148,7 @@ def run_batch(num_workers: int | None = None):
     print(f"{'#'*80}\n")
     
     # Select solver
-    solver_name = 'ts_tenure5'
+    solver_name = 'alns__adaptive_sa'
     
     # Create partial function with solver_name bound
     process_instance = partial(run_solver_for_instance, solver_name=solver_name)

@@ -4,7 +4,277 @@ from np_solver.metaheuristics.alns.components import ALNSAcceptance, ALNSDestroy
 from np_solver.metaheuristics.alns.interface import ALNSDestroy, ALNSRepair
 import random
 from typing import List, Set, Tuple, Any
+import math
 
+class ShawDestroy(ALNSDestroy):
+    """
+    Shaw Removal (Relatedness-Based) Operator.
+    
+    This operator removes clients that are "related" to each other,
+    based on the idea that related clients are easier to reschedule
+    together in new ways.
+    
+    Relatedness is measured by a weighted sum of:
+    1. Distance (closer = more related)
+    2. Time Window Overlap (more overlap = more related)
+    
+    Inspired by Shaw (1998) and mentioned in Pereira et al..
+    """
+    def __init__(self, num_to_remove: int, 
+                 weight_distance: float = 1.0, 
+                 weight_time: float = 0.5,
+                 determinism_param: float = 3.0):
+        self.num_to_remove = num_to_remove
+        self.weight_distance = weight_distance
+        self.weight_time = weight_time
+        self.determinism_param = determinism_param # Controls greediness
+
+    def _calculate_relatedness(self, client1: int, client2: int, 
+                               problem: BaseProblemInstance) -> float:
+        """Calculates relatedness between two clients."""
+        
+        # 1. Normalized Distance
+        dist = problem.d[client1][client2]
+        max_dist = problem.max_distance  # Assumes problem has this attr
+        norm_dist = dist / max_dist
+        
+        # 2. Normalized Time Window Overlap
+        e1, l1 = problem.e[client1], problem.l[client1]
+        e2, l2 = problem.e[client2], problem.l[client2]
+        
+        # Calculate overlap
+        overlap = max(0, min(l1, l2) - max(e1, e2))
+        
+        # Normalize by the total time span (e.g., max end time)
+        max_time = problem.max_tw_end # Assumes problem has this attr
+        norm_time_overlap = overlap / max_time
+        
+        # Relatedness (lower is more related)
+        relatedness = (self.weight_distance * norm_dist + 
+                       self.weight_time * (1 - norm_time_overlap)) # 1-overlap
+        
+        return relatedness
+
+    def destroy(self, solution: BaseSolution, problem: BaseProblemInstance) -> BaseSolution:
+        new_sol = solution.copy()
+        clients_in_solution = _get_clients_in_solution(new_sol)
+        
+        if not clients_in_solution:
+            return new_sol
+        
+        n = min(self.num_to_remove, len(clients_in_solution))
+        
+        # Start with a random client
+        first_client = random.choice(clients_in_solution)
+        clients_to_remove = [first_client]
+        clients_in_solution.remove(first_client)
+        
+        while len(clients_to_remove) < n and clients_in_solution:
+            # Pick a random client *from the removed list* to be the seed
+            seed_client = random.choice(clients_to_remove)
+            
+            # Find client in solution most related to the seed
+            relatedness_scores = []
+            for other_client in clients_in_solution:
+                score = self._calculate_relatedness(seed_client, other_client, problem)
+                relatedness_scores.append((score, other_client))
+            
+            # Sort by relatedness (ascending, lower is better)
+            relatedness_scores.sort(key=lambda x: x[0])
+            
+            # Pick from the top related clients using determinism param
+            # (higher param = more greedy/deterministic)
+            idx = int(len(relatedness_scores) ** self.determinism_param * random.random())
+            idx = min(idx, len(relatedness_scores) - 1) # Bound check
+            
+            chosen_client = relatedness_scores[idx][1]
+            
+            clients_to_remove.append(chosen_client)
+            clients_in_solution.remove(chosen_client)
+
+        # Remove all chosen clients from the solution
+        for client in clients_to_remove:
+            try:
+                new_sol.remove_client(client)
+            except Exception as e:
+                print(f"Warning: Could not remove client {client}. Error: {e}")
+                
+        return new_sol
+
+
+class RegretRepair(ALNSRepair):
+    """
+    Regret-k Repair (Regret-Based) Operator.
+    
+    This operator inserts clients in "regret" order.
+    The regret for a client is the cost difference between its
+    *best* insertion position and its *k-th best* insertion position.
+    
+    The idea is to prioritize clients with high regret, as they
+    have few good options and "must" be placed soon.
+    """
+    def __init__(self, k_regret: int = 3):
+        # k_regret=1 is equivalent to GreedyRepair
+        # k_regret=2 calculates best_cost - 2nd_best_cost
+        self.k_regret = max(2, k_regret) 
+
+    def repair(self, 
+             partial_solution: BaseSolution, 
+             problem: BaseProblemInstance, 
+             evaluator: BaseEvaluator) -> BaseSolution:
+        
+        repaired_sol = partial_solution.copy()
+        
+        clients_to_insert = _get_unvisited_clients(repaired_sol, problem)
+        
+        while clients_to_insert:
+            client_regrets = []
+
+            # 1. Find insertion costs for ALL clients in ALL positions
+            for client in clients_to_insert:
+                insertion_options = []
+                
+                # Check 'insert' moves
+                nodes_in_used_routes = _get_nodes_in_used_routes(repaired_sol)
+                for n_neighbor in nodes_in_used_routes:
+                    cost = evaluator.evaluate_insertion_cost(
+                        elem_to_insert=client, elem_new_neighbor=n_neighbor, sol=repaired_sol
+                    )
+                    if cost < float('inf'):
+                        move = ('insert', client, n_neighbor)
+                        insertion_options.append((cost, move))
+                
+                # Check 'insert_use' moves
+                unused_vehicle_indices = _get_unused_vehicles(repaired_sol)
+                for v_idx in unused_vehicle_indices:
+                    cost = evaluator.evaluate_insert_use_cost(
+                        client=client, vehicle_index=v_idx, sol=repaired_sol
+                    )
+                    if cost < float('inf'):
+                        move = ('insert_use', client, v_idx)
+                        insertion_options.append((cost, move))
+
+                # If no feasible insertions, client is unroutable
+                if not insertion_options:
+                    continue
+
+                # 2. Calculate regret for this client
+                insertion_options.sort(key=lambda x: x[0])
+                
+                best_cost, best_move = insertion_options[0]
+                
+                regret = 0.0
+                k = min(self.k_regret, len(insertion_options))
+                for i in range(1, k):
+                    regret += (insertion_options[i][0] - best_cost)
+                
+                # Store (regret, best_cost_tiebreak, client, best_move)
+                # We sort by highest regret, then lowest cost
+                client_regrets.append((-regret, best_cost, client, best_move))
+            
+            # 3. If no clients can be inserted, stop
+            if not client_regrets:
+                unroutable = [c for c in clients_to_insert]
+                print(f"Warning: Could not repair solution. Unroutable clients: {unroutable}")
+                break
+                
+            # 4. Select the client with the highest regret (and best cost)
+            client_regrets.sort() # Sorts by -regret (so highest is first)
+            
+            best_regret_data = client_regrets[0]
+            best_cost = best_regret_data[1]
+            client_to_insert = best_regret_data[2]
+            best_move = best_regret_data[3]
+            
+            # 5. Apply the best move for that client
+            move_type, elem1, elem2 = best_move
+            
+            if move_type == 'insert':
+                repaired_sol.insert_element(elem_to_insert=elem1, elem_new_neighbor=elem2)
+            elif move_type == 'insert_use':
+                repaired_sol.insert_into_vehicle(client=elem1, vehicle_index=elem2)
+            
+            repaired_sol.cost = best_cost # Update cost
+            clients_to_insert.remove(client_to_insert)
+
+        return repaired_sol
+
+
+class WorstDestroy(ALNSDestroy):
+    """
+    Worst Removal (Cost-Based) Operator.
+    
+    This operator removes clients that contribute the most to the
+    solution's cost. This is a greedy way to try and remove
+    "bad" decisions.
+    
+    Since the destroy operator doesn't get the evaluator, we use
+    a proxy for cost: the extra distance a client adds to its route.
+    
+    Mentioned in Pereira et al..
+    """
+    def __init__(self, num_to_remove: int, determinism_param: float = 3.0):
+        self.num_to_remove = num_to_remove
+        self.determinism_param = determinism_param # Controls greediness
+
+    def _calculate_removal_cost_proxy(self, client: int, 
+                                      solution: BaseSolution, 
+                                      problem: BaseProblemInstance) -> float:
+        """
+        Calculates the cost (distance) saved by removing the client.
+        Returns a *higher* value for "worse" clients.
+        """
+        r_idx, n_idx = solution._find_node(client)
+        
+        if r_idx is None:
+            return -float('inf') # Should not happen
+
+        route = solution[r_idx]
+        
+        # Get neighbors
+        prev_node = route[n_idx - 1]
+        next_node = route[n_idx + 1]
+        
+        # Cost of having the client
+        cost_with_client = problem.d[prev_node][client] + problem.d[client][next_node]
+        
+        # Cost of *not* having the client
+        cost_without_client = problem.d[prev_node][next_node]
+        
+        # Return the difference. Higher = worse.
+        return cost_with_client - cost_without_client
+
+    def destroy(self, solution: BaseSolution, problem: BaseProblemInstance) -> BaseSolution:
+        new_sol = solution.copy()
+        
+        n = min(self.num_to_remove, len(_get_clients_in_solution(new_sol)))
+        
+        for _ in range(n):
+            clients_in_solution = _get_clients_in_solution(new_sol)
+            if not clients_in_solution:
+                break
+            
+            # Calculate cost for all clients *currently* in the solution
+            costs = []
+            for client in clients_in_solution:
+                cost = self._calculate_removal_cost_proxy(client, new_sol, problem)
+                costs.append((cost, client))
+            
+            # Sort by cost (descending, higher is worse)
+            costs.sort(key=lambda x: x[0], reverse=True)
+            
+            # Pick from the top worst clients using determinism param
+            idx = int(len(costs) ** self.determinism_param * random.random())
+            idx = min(idx, len(costs) - 1)
+            
+            worst_client = costs[idx][1]
+            
+            try:
+                new_sol.remove_client(worst_client)
+            except Exception as e:
+                print(f"Warning: Could not remove client {worst_client}. Error: {e}")
+        
+        return new_sol
 
 def _get_clients_in_solution(solution: BaseSolution) -> List[int]:
     """Helper to get all visited clients, excluding depots."""
@@ -39,7 +309,6 @@ def _get_unused_vehicles(solution: BaseSolution) -> List[int]:
     return unused_vehicles
 
 
-# --- Destroy Operators ---
 
 class RandomDestroy(ALNSDestroy):
     """
@@ -56,24 +325,19 @@ class RandomDestroy(ALNSDestroy):
     def destroy(self, solution: BaseSolution, problem: BaseProblemInstance) -> BaseSolution:
         """
         Removes `num_to_remove` random clients.
-        
-        ! We must assume the BaseSolution has a `remove_client(client_id)`
-        ! method that removes the client from its route.
         """
         new_sol = solution.copy()
         clients_in_solution = _get_clients_in_solution(new_sol)
         
         if not clients_in_solution:
             return new_sol # Nothing to remove
-            
-        # Ensure we don't try to remove more clients than exist
+    
         n = min(self.num_to_remove, len(clients_in_solution))
         
         clients_to_remove = random.sample(clients_in_solution, n)
         
         for client in clients_to_remove:
             try:
-                # This is the assumed method, similar to your `swap`, `relocate`, etc.
                 new_sol.remove_client(client) 
             except Exception as e:
                 print(f"Warning: Could not remove client {client}. Error: {e}")
@@ -113,7 +377,6 @@ class RouteDestroy(ALNSDestroy):
         
         return new_sol
 
-# --- Repair Operators ---
 
 class GreedyRepair(ALNSRepair):
     """
@@ -136,7 +399,6 @@ class GreedyRepair(ALNSRepair):
         """
         best_move = None
         
-        # We must use the 'sense' to initialize the best cost
         if evaluator.sense == BaseEvaluator.ObjectiveSense.MINIMIZE:
             best_cost = float('inf')
             is_better = lambda new, old: new < old
@@ -144,38 +406,28 @@ class GreedyRepair(ALNSRepair):
             best_cost = float('-inf')
             is_better = lambda new, old: new > old
 
-        # 1. Check 'insert' moves (into *used* routes)
         nodes_in_used_routes = _get_nodes_in_used_routes(solution)
         for n_neighbor in nodes_in_used_routes:
             move = ('insert', client, n_neighbor)
-            try:
-                # Use the evaluator from your TS example
-                cost = evaluator.evaluate_insertion_cost(
-                    elem_to_insert=client, elem_new_neighbor=n_neighbor, sol=solution
-                )
-                
-                # Note: your evaluate_move returned solution.cost + delta
-                # We assume evaluate_insertion_cost does the same.
-                
-                if is_better(cost, best_cost):
-                    best_cost = cost
-                    best_move = move
-            except:
-                continue # Move is infeasible (e.g., TW violation)
+            
+            cost = evaluator.evaluate_insertion_cost(
+                elem_to_insert=client, elem_new_neighbor=n_neighbor, sol=solution
+            )
+            
+            if is_better(cost, best_cost):
+                best_cost = cost
+                best_move = move
 
-        # 2. Check 'insert_use' moves (into *unused* vehicles)
         unused_vehicle_indices = _get_unused_vehicles(solution)
         for v_idx in unused_vehicle_indices:
             move = ('insert_use', client, v_idx)
-            try:
-                cost = evaluator.evaluate_insert_use_cost(
-                    client=client, vehicle_index=v_idx, sol=solution
-                )
-                if is_better(cost, best_cost):
-                    best_cost = cost
-                    best_move = move
-            except:
-                continue # Move is infeasible
+            cost = evaluator.evaluate_insert_use_cost(
+                client=client, vehicle_index=v_idx, sol=solution
+            )
+            
+            if is_better(cost, best_cost):
+                best_cost = cost
+                best_move = move
                 
         return best_cost, best_move
 
@@ -196,12 +448,10 @@ class GreedyRepair(ALNSRepair):
         while clients_to_insert:
             client = clients_to_insert.pop(0)
             
-            # 3. Find the best possible move for this client
             best_cost, best_move = self._find_best_insertion(
                 client, repaired_sol, evaluator
             )
             
-            # 4. Apply the best move, if one was found
             if best_move:
                 move_type, elem1, elem2 = best_move
                 
@@ -210,25 +460,11 @@ class GreedyRepair(ALNSRepair):
                     repaired_sol.insert_element(elem_to_insert=elem1, elem_new_neighbor=elem2)
                 elif move_type == 'insert_use':
                     repaired_sol.insert_into_vehicle(client=elem1, vehicle_index=elem2)
-                
-                # CRITICAL: Update the solution's cost for the next iteration's
-                # delta-evaluation to be correct.
-                repaired_sol.cost = best_cost
             else:
-                # Client could not be inserted (e.g., no feasible position)
-                # The final solution will be "partial" and the main
-                # evaluator.evaluate() must assign a high penalty.
-                # We can print a warning.
-                print(f"Warning: Could not repair solution. Client {client} is unroutable.")
                 pass 
                 
         return repaired_sol
     
-# File: model_definitions.py (or your main script)
-
-
-# --- 1. Define the pool of operators ---
-
 # A list of destroy operators to choose from
 destroy_operators = [
     RandomDestroy(num_to_remove=5),
@@ -242,17 +478,30 @@ repair_operators = [
     GreedyRepair()
 ]
 
-# --- 2. Create the ALNS Models ---
+# Model 1: ALNS with Simulated Annealing and adaptive weights
 
-# Model 1: A standard ALNS with Simulated Annealing and adaptive weights
+destroy_operators = [
+    RandomDestroy(num_to_remove=5),
+    RandomDestroy(num_to_remove=10),
+    RouteDestroy(),
+    ShawDestroy(num_to_remove=8, determinism_param=4),
+    WorstDestroy(num_to_remove=6, determinism_param=3)
+]
+
+# A list of repair operators to choose from
+repair_operators = [
+    GreedyRepair(),
+    RegretRepair(k_regret=3),
+    RegretRepair(k_regret=5)
+]
+
 alns_adaptive_sa = ALNS(
     destroy_operators=destroy_operators,
     repair_operators=repair_operators,
-    
-    # Strategy for managing operator weights and selection
+
     weight_manager=RouletteWheelManager(
-        segment_size=100,  # Recalculate weights every 100 iterations
-        decay=0.8,         # 80% of old weight, 20% of new score
+        segment_size=100,
+        decay=0.8,
         reward_points={
             "new_best": 10,
             "better_than_current": 5,
@@ -260,15 +509,11 @@ alns_adaptive_sa = ALNS(
             "rejected": 0
         }
     ),
-    
-    # Strategy for accepting/rejecting solutions
     acceptance_criteria=SimulatedAnnealingAcceptance(
         initial_temp=5000,
-        cooling_rate=0.998, # Slow cooling
+        cooling_rate=0.998,
         min_temp=0.1
     ),
-    
-    # Arguments for BaseMetaheuristic
     time_limit=600,
     max_iterations=10000
 )
@@ -298,11 +543,3 @@ alns_greedy_lns = ALNS(
     time_limit=600,
     max_iterations=10000
 )
-
-# You can now use these models just like your Tabu Search models:
-#
-# best_sol = alns_adaptive_sa.solve(
-#     problem=my_problem_instance,
-#     evaluator=my_evaluator,
-#     initial_solution=my_initial_solution
-# )

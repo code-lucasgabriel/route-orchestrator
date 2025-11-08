@@ -1,9 +1,9 @@
 from np_solver.core import BaseSolution
-from typing import Tuple
+from typing import Tuple, Optional
 
 class HFFVRPTWSolution(BaseSolution):
     # helper to find a client
-    def _find_node(self, node_to_find) -> Tuple[int, int]:
+    def _find_node(self, node_to_find) -> Tuple[Optional[int], Optional[int]]:
         """Finds (route_idx, node_idx) of a node. Returns (None, None) if not found."""
         for r_idx, route in enumerate(self):
             try:
@@ -57,7 +57,7 @@ class HFFVRPTWSolution(BaseSolution):
         node = self[r_move_idx].pop(n_move_idx) 
         
         r_neighbor_idx, n_neighbor_idx = self._find_node(elem_new_neighbor)
-        if r_neighbor_idx is None:
+        if r_neighbor_idx is None or n_neighbor_idx is None:
             # If neighbor not found, it might have been the node we just popped
             # In that case, we can't relocate relative to itself.
             # But if it's a different node, it's an error.
@@ -74,7 +74,7 @@ class HFFVRPTWSolution(BaseSolution):
         """
         r_neighbor_idx, n_neighbor_idx = self._find_node(elem_new_neighbor)
         
-        if r_neighbor_idx is None:
+        if r_neighbor_idx is None or n_neighbor_idx is None:
             # If neighbor isn't found, default to inserting in the
             # first position of the first route.
             r_neighbor_idx = 0
@@ -119,3 +119,9 @@ class HFFVRPTWSolution(BaseSolution):
                 f"Attempted 'insert_use' move on a non-empty route. "
                 f"Vehicle {vehicle_index} has route: {route}"
             )
+        
+    def remove_client(self, client_node: int):
+        (route_idx, client_idx) = self._find_node(client_node)
+        if route_idx is None or client_idx is None:
+            return
+        self[route_idx].pop(client_idx)

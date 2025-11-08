@@ -60,15 +60,19 @@ class HFFVRPTWProblem(BaseProblemInstance):
         # c^p: dicionário {tipo_veiculo -> custo variável}
         self.c_p = {f['type']: f['variable_cost'] for f in self.raw_fleet}
 
+        self.max_tw_end = max(self.l)
+
+        self.max_distance = max(max(row) for row in self.d)
+
         # K: conjunto (lista) de todos os veículos individuais
         self.K = []
         for p in self.P:
             # Para cada tipo 'p', adiciona 'K_p[p]' veículos
             for i in range(self.K_p[p]):
-                self.K.append((p, i)) # Ex: [('A', 0), ('A', 1), ..., ('B', 0), ...]
+                self.K.append((p, i))
 
         # M: Big-M
-        self.M = 1e6 
+        self.M = 1e10
 
         # print("--- Verificação das Variáveis Geradas ---")
         # print(f"--- V (Vértices) ---: {self.V}\n")
