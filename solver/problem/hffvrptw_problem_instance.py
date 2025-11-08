@@ -95,12 +95,7 @@ class HFFVRPTWProblem(BaseProblemInstance):
         return os.path.basename(self.instance)
     
     def get_domain_size(self):
-        # TODO define what is the domain size
         return self.fleet
     
     def report_experiment(self, filename: str, sol: HFFVRPTWSolution):
-        # TODO verify if it is correct and working
-        try:
-            save_solution_json(RESULTS_PATH, filename, sol)
-        except Exception as e:
-            print(f"An error occurred during insertion in the experiment log file for instance {self.get_instance_name()}: {e}")
+        pass
