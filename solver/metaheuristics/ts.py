@@ -3,6 +3,7 @@ from np_solver.metaheuristics.ts import TabuSearch
 from np_solver.metaheuristics.ts.interface import TSNeighborhood
 from typing import List, Any, Tuple
 import random
+from settings import TIME_LIMIT
 
 class HFFVRPTW_TSNeighborhood(TSNeighborhood):
     """
@@ -164,10 +165,12 @@ class HFFVRPTW_TSNeighborhood(TSNeighborhood):
     
 ts_tenure5 = TabuSearch(
     tenure=5,
-    neighborhood_strategy=HFFVRPTW_TSNeighborhood()
+    neighborhood_strategy=HFFVRPTW_TSNeighborhood(),
+    time_limit=TIME_LIMIT
 )
 
 ts_tenure0 = TabuSearch(
     tenure=0,
-    neighborhood_strategy=HFFVRPTW_TSNeighborhood()
+    neighborhood_strategy=HFFVRPTW_TSNeighborhood(),
+    time_limit=TIME_LIMIT
 )

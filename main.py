@@ -6,14 +6,45 @@ import os
 import time
 import multiprocessing
 from functools import partial
+from collections import defaultdict
 
-def run_solver_for_instance(instance_path: str, solver_name: str = 'ts_tenure5'):
+
+def group_routes_by_fleet(solution, problem):
+    """
+    Group routes by fleet type, excluding unused vehicles.
+    
+    Args:
+        solution: HFFVRPTWSolution with routes
+        problem: HFFVRPTWProblem instance with fleet information
+    
+    Returns:
+        dict: Fleet type -> list of routes for that fleet type
+    """
+    fleet_routes = defaultdict(list)
+    
+    # Map vehicle index to fleet type
+    for idx, route in enumerate(solution):
+        # Skip unused vehicles (routes that are just [0, 0])
+        if route == [0, 0]:
+            continue
+        
+        # Get the fleet type for this vehicle index
+        # problem.K is a list of (fleet_type, vehicle_index_within_type) tuples
+        if idx < len(problem.K):
+            fleet_type, _ = problem.K[idx]
+            fleet_routes[fleet_type].append(route)
+    
+    return dict(fleet_routes)
+
+
+def run_solver_for_instance(instance_path: str, solver_name: str, metaheuristic: str):
     """
     Run the solver for a single instance and log results.
     
     Args:
         instance_path: Path to the instance file (e.g., "100_customers/C1_1_01.csv")
-        solver_name: Name of the solver to use ('ts_tenure5', 'ts_tenure0', 'alns_greedy_lns')
+        solver_name: Name of the solver to use ('ts_tenure5', 'ts_tenure0', 'alns_greedy_lns', 'alns_adaptive_sa')
+        metaheuristic: Metaheuristic type ('alns' or 'ts')
     """
     # Import solver inside function for multiprocessing compatibility
     if solver_name == 'ts_tenure5':
@@ -25,10 +56,11 @@ def run_solver_for_instance(instance_path: str, solver_name: str = 'ts_tenure5')
     elif solver_name == 'alns_adaptive_sa':
         solver = alns_adaptive_sa
     else:
-        solver = ts_tenure5
-    # Create log directories
-    execution_dir = "logs/execution"
-    results_dir = "logs/results"
+        raise ValueError(f"Unknown solver: {solver_name}")
+    
+    # Create log directories based on metaheuristic type
+    execution_dir = f"logs/{metaheuristic}/execution"
+    results_dir = f"logs/{metaheuristic}/results"
     os.makedirs(execution_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
     
@@ -39,8 +71,17 @@ def run_solver_for_instance(instance_path: str, solver_name: str = 'ts_tenure5')
     execution_file = os.path.join(execution_dir, f"{instance_name}.txt")
     results_file = os.path.join(results_dir, f"{instance_name}.txt")
     
+    # Check if results already exist
+    if os.path.exists(results_file):
+        print(f"Skipping {instance_name} ({metaheuristic}) - results already exist")
+        return {
+            'instance': instance_name,
+            'metaheuristic': metaheuristic,
+            'skipped': True
+        }
+    
     print(f"\n{'='*80}")
-    print(f"Processing instance: {instance_path}")
+    print(f"Processing instance: {instance_path} with {metaheuristic}/{solver_name}")
     print(f"{'='*80}\n")
     
     # Create and load the problem instance data
@@ -68,8 +109,13 @@ def run_solver_for_instance(instance_path: str, solver_name: str = 'ts_tenure5')
         start_time = time.time()
         
         # Log initial solution
-        exec_log.write(f"{best_cost}\n")
-        exec_log.write(f"{list(best_solution)}\n")
+        current_time = time.time() - start_time
+        exec_log.write(f"[{best_cost:.2f}, {current_time:.2f}]\n")
+        
+        # Group routes by fleet and write them
+        fleet_routes = group_routes_by_fleet(best_solution, problem)
+        for fleet_type in sorted(fleet_routes.keys()):
+            exec_log.write(f"{fleet_type}: {fleet_routes[fleet_type]}\n")
         exec_log.flush()
         
         # Run the solver with custom callback to log progress
@@ -91,9 +137,13 @@ def run_solver_for_instance(instance_path: str, solver_name: str = 'ts_tenure5')
                 best_solution = solver.best_solution.copy()
                 best_time = time.time() - start_time
                 
-                # Log to execution file: cost and elements
-                exec_log.write(f"{best_cost}\n")
-                exec_log.write(f"{list(best_solution)}\n")
+                # Log to execution file: [cost, time] list and fleet-grouped routes
+                exec_log.write(f"[{best_cost:.2f}, {best_time:.2f}]\n")
+                
+                # Group routes by fleet and write them
+                fleet_routes = group_routes_by_fleet(best_solution, problem)
+                for fleet_type in sorted(fleet_routes.keys()):
+                    exec_log.write(f"{fleet_type}: {fleet_routes[fleet_type]}\n")
                 exec_log.flush()
                 
                 print(f"New best solution found: {best_cost:.2f} (at {best_time:.2f}s)")
@@ -109,15 +159,18 @@ def run_solver_for_instance(instance_path: str, solver_name: str = 'ts_tenure5')
         
         total_time = time.time() - start_time
     
-    # Write results file (3 lines: cost, elements, time)
+    # Write results file with new format
     with open(results_file, 'w') as res_log:
-        res_log.write(f"{best_cost}\n")
-        # HFFVRPTWSolution is a list of routes, so we write it directly
-        res_log.write(f"{list(best_solution)}\n")
-        res_log.write(f"{best_time}\n")
+        # First line: [total_cost, time_found] - changed from tuple to list
+        res_log.write(f"[{best_cost:.2f}, {best_time:.2f}]\n")
+        
+        # Group routes by fleet and write them
+        fleet_routes = group_routes_by_fleet(best_solution, problem)
+        for fleet_type in sorted(fleet_routes.keys()):
+            res_log.write(f"{fleet_type}: {fleet_routes[fleet_type]}\n")
     
     print(f"\n{'='*80}")
-    print(f"Completed: {instance_name}")
+    print(f"Completed: {instance_name} ({metaheuristic})")
     print(f"Best cost: {best_cost:.2f}")
     print(f"Found at: {best_time:.2f}s")
     print(f"Total time: {total_time:.2f}s")
@@ -127,14 +180,32 @@ def run_solver_for_instance(instance_path: str, solver_name: str = 'ts_tenure5')
     
     return {
         'instance': instance_name,
+        'metaheuristic': metaheuristic,
         'best_cost': best_cost,
         'best_time': best_time,
-        'total_time': total_time
+        'total_time': total_time,
+        'skipped': False
     }
+
+
+def _process_task_wrapper(task):
+    """
+    Wrapper function for multiprocessing. Must be at module level for pickling.
+    
+    Args:
+        task: Tuple of (instance_path, solver_name, metaheuristic)
+    
+    Returns:
+        dict: Result dictionary from run_solver_for_instance
+    """
+    instance_path, solver_name, metaheuristic = task
+    return run_solver_for_instance(instance_path, solver_name, metaheuristic)
+
 
 def run_batch(num_workers: int | None = None):
     """
-    Run solver for all instances in the list using parallel processing.
+    Run solvers for all instances in the list using parallel processing.
+    Runs both ALNS and TS metaheuristics for each instance.
     
     Args:
         num_workers: Number of parallel workers. If None, uses CPU count - 1.
@@ -142,56 +213,70 @@ def run_batch(num_workers: int | None = None):
     if num_workers is None:
         num_workers = max(1, multiprocessing.cpu_count() - 1)
     
+    # Define solver configurations: (solver_name, metaheuristic_type)
+    solver_configs = [
+        ('alns_adaptive_sa', 'alns'),
+        ('ts_tenure5', 'ts'),
+    ]
+    
+    # Create list of all tasks (instance, solver, metaheuristic)
+    all_tasks = []
+    for instance in INSTANCES:
+        for solver_name, metaheuristic in solver_configs:
+            all_tasks.append((instance, solver_name, metaheuristic))
+    
     print(f"\n{'#'*80}")
-    print(f"Starting batch processing of {len(INSTANCES)} instances")
+    print(f"Starting batch processing")
+    print(f"Instances: {len(INSTANCES)}")
+    print(f"Metaheuristics: {len(solver_configs)}")
+    print(f"Total tasks: {len(all_tasks)}")
     print(f"Using {num_workers} parallel workers")
     print(f"{'#'*80}\n")
-    
-    # Select solver
-    solver_name = 'alns__adaptive_sa'
-    
-    # Create partial function with solver_name bound
-    process_instance = partial(run_solver_for_instance, solver_name=solver_name)
     
     # Start timer for overall batch
     batch_start_time = time.time()
     
-    # Run instances in parallel
+    # Run tasks in parallel
     results_summary = []
     completed = 0
     
     with multiprocessing.Pool(processes=num_workers) as pool:
         # Use imap_unordered for better performance and progress tracking
-        for result in pool.imap_unordered(process_instance, INSTANCES):
+        for result in pool.imap_unordered(_process_task_wrapper, all_tasks):
             completed += 1
             results_summary.append(result)
             
             # Print progress
-            if 'error' not in result:
-                print(f"[{completed}/{len(INSTANCES)}] Completed: {result['instance']} - Cost: {result['best_cost']:.2f}")
+            if result.get('skipped'):
+                print(f"[{completed}/{len(all_tasks)}] Skipped: {result['instance']} ({result['metaheuristic']})")
+            elif 'error' not in result:
+                print(f"[{completed}/{len(all_tasks)}] Completed: {result['instance']} ({result['metaheuristic']}) - Cost: {result['best_cost']:.2f}")
             else:
-                print(f"[{completed}/{len(INSTANCES)}] ERROR: {result['instance']} - {result['error']}")
+                print(f"[{completed}/{len(all_tasks)}] ERROR: {result['instance']} ({result['metaheuristic']}) - {result['error']}")
     
     batch_total_time = time.time() - batch_start_time
     
-    # Sort results by instance name for consistent display
-    results_summary.sort(key=lambda x: x['instance'])
+    # Sort results by instance name and metaheuristic
+    results_summary.sort(key=lambda x: (x['instance'], x['metaheuristic']))
     
     # Print summary
     print(f"\n{'#'*80}")
     print(f"BATCH PROCESSING COMPLETE")
     print(f"Total batch time: {batch_total_time:.2f}s")
     print(f"{'#'*80}\n")
-    print(f"{'Instance':<30} {'Best Cost':<15} {'Found At (s)':<15} {'Total Time (s)':<15}")
-    print(f"{'-'*80}")
+    print(f"{'Instance':<30} {'Method':<10} {'Best Cost':<15} {'Found At (s)':<15} {'Total Time (s)':<15}")
+    print(f"{'-'*90}")
     
     for result in results_summary:
-        if 'error' in result:
-            print(f"{result['instance']:<30} ERROR: {result['error']}")
+        if result.get('skipped'):
+            print(f"{result['instance']:<30} {result['metaheuristic']:<10} SKIPPED")
+        elif 'error' in result:
+            print(f"{result['instance']:<30} {result['metaheuristic']:<10} ERROR: {result['error']}")
         else:
-            print(f"{result['instance']:<30} {result['best_cost']:<15.2f} {result['best_time']:<15.2f} {result['total_time']:<15.2f}")
+            print(f"{result['instance']:<30} {result['metaheuristic']:<10} {result['best_cost']:<15.2f} {result['best_time']:<15.2f} {result['total_time']:<15.2f}")
     
     print(f"\n{'#'*80}\n")
+
 
 if __name__ == "__main__":
     # Required for multiprocessing on some platforms

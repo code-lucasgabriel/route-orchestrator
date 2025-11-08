@@ -6,6 +6,9 @@ FLEETS_PATH = os.path.join(_base_path, "data/fleets")
 INSTANCES_PATH = os.path.join(_base_path, "data/instances")
 RESULTS_PATH = os.path.join(_base_path, "data/results")
 
+# Solver configuration
+TIME_LIMIT = 600  # Time limit in seconds for both ALNS and TS solvers
+
 # List of instances to process (first 5 from each customer size)
 INSTANCES = [
     # 100_customers - first 5

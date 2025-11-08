@@ -5,6 +5,7 @@ from np_solver.metaheuristics.alns.interface import ALNSDestroy, ALNSRepair
 import random
 from typing import List, Set, Tuple, Any
 import math
+from settings import TIME_LIMIT
 
 class ShawDestroy(ALNSDestroy):
     """
@@ -514,7 +515,7 @@ alns_adaptive_sa = ALNS(
         cooling_rate=0.998,
         min_temp=0.1
     ),
-    time_limit=600,
+    time_limit=TIME_LIMIT,
     max_iterations=10000
 )
 
@@ -523,23 +524,20 @@ alns_adaptive_sa = ALNS(
 # This model only accepts *improving* solutions and has a
 # very simple, non-adaptive operator selection.
 alns_greedy_lns = ALNS(
-    destroy_operators=[RandomDestroy(num_to_remove=8)], # Only one operator
-    repair_operators=[GreedyRepair()],                  # Only one operator
-    
-    # A "dummy" weight manager (it will always pick the only operators)
+    destroy_operators=[RandomDestroy(num_to_remove=8)], # Simple random removal
+    repair_operators=[GreedyRepair()],                  # Simple greedy repair
     weight_manager=RouletteWheelManager(
         segment_size=1, 
-        decay=1.0 # Never update weights, stick to initial
+        decay=1.0 # No decay: each operator treated equally always
     ),
-    
-    # A "Hill Climbing" acceptance criterion (temp=0)
+    # Greedy acceptance: only accept improving solutions
     acceptance_criteria=SimulatedAnnealingAcceptance(
-        initial_temp=0, # Never accept worse solutions
+        initial_temp=0, # Temp = 0 means only accept better solutions
         cooling_rate=1.0, 
         min_temp=0
     ),
-    
-    # Arguments for BaseMetaheuristic
-    time_limit=600,
+    # 10-minute time limit (same as Tabu Search)
+    time_limit=TIME_LIMIT,
     max_iterations=10000
 )
+
