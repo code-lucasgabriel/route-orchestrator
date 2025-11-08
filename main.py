@@ -37,14 +37,13 @@ def group_routes_by_fleet(solution, problem):
     return dict(fleet_routes)
 
 
-def run_solver_for_instance(instance_path: str, solver_name: str, metaheuristic: str):
+def run_solver_for_instance(instance_path: str, solver_name: str):
     """
     Run the solver for a single instance and log results.
     
     Args:
         instance_path: Path to the instance file (e.g., "100_customers/C1_1_01.csv")
         solver_name: Name of the solver to use ('ts_tenure5', 'ts_tenure0', 'alns_greedy_lns', 'alns_adaptive_sa')
-        metaheuristic: Metaheuristic type ('alns' or 'ts')
     """
     # Import solver inside function for multiprocessing compatibility
     if solver_name == 'ts_tenure5':
@@ -58,9 +57,9 @@ def run_solver_for_instance(instance_path: str, solver_name: str, metaheuristic:
     else:
         raise ValueError(f"Unknown solver: {solver_name}")
     
-    # Create log directories based on metaheuristic type
-    execution_dir = f"logs/{metaheuristic}/execution"
-    results_dir = f"logs/{metaheuristic}/results"
+    # Create log directories based on solver name
+    execution_dir = f"logs/{solver_name}/execution"
+    results_dir = f"logs/{solver_name}/results"
     os.makedirs(execution_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
     
@@ -73,15 +72,15 @@ def run_solver_for_instance(instance_path: str, solver_name: str, metaheuristic:
     
     # Check if results already exist
     if os.path.exists(results_file):
-        print(f"Skipping {instance_name} ({metaheuristic}) - results already exist")
+        print(f"Skipping {instance_name} ({solver_name}) - results already exist")
         return {
             'instance': instance_name,
-            'metaheuristic': metaheuristic,
+            'solver': solver_name,
             'skipped': True
         }
     
     print(f"\n{'='*80}")
-    print(f"Processing instance: {instance_path} with {metaheuristic}/{solver_name}")
+    print(f"Processing instance: {instance_path} with {solver_name}")
     print(f"{'='*80}\n")
     
     # Create and load the problem instance data
@@ -170,7 +169,7 @@ def run_solver_for_instance(instance_path: str, solver_name: str, metaheuristic:
             res_log.write(f"{fleet_type}: {fleet_routes[fleet_type]}\n")
     
     print(f"\n{'='*80}")
-    print(f"Completed: {instance_name} ({metaheuristic})")
+    print(f"Completed: {instance_name} ({solver_name})")
     print(f"Best cost: {best_cost:.2f}")
     print(f"Found at: {best_time:.2f}s")
     print(f"Total time: {total_time:.2f}s")
@@ -180,7 +179,7 @@ def run_solver_for_instance(instance_path: str, solver_name: str, metaheuristic:
     
     return {
         'instance': instance_name,
-        'metaheuristic': metaheuristic,
+        'solver': solver_name,
         'best_cost': best_cost,
         'best_time': best_time,
         'total_time': total_time,
@@ -193,19 +192,23 @@ def _process_task_wrapper(task):
     Wrapper function for multiprocessing. Must be at module level for pickling.
     
     Args:
-        task: Tuple of (instance_path, solver_name, metaheuristic)
+        task: Tuple of (instance_path, solver_name)
     
     Returns:
         dict: Result dictionary from run_solver_for_instance
     """
-    instance_path, solver_name, metaheuristic = task
-    return run_solver_for_instance(instance_path, solver_name, metaheuristic)
+    instance_path, solver_name = task
+    return run_solver_for_instance(instance_path, solver_name)
 
 
 def run_batch(num_workers: int | None = None):
     """
     Run solvers for all instances in the list using parallel processing.
-    Runs both ALNS and TS metaheuristics for each instance.
+    Runs all four metaheuristics for each instance:
+    - alns_adaptive_sa
+    - alns_greedy_lns
+    - ts_tenure5
+    - ts_tenure0
     
     Args:
         num_workers: Number of parallel workers. If None, uses CPU count - 1.
@@ -213,22 +216,24 @@ def run_batch(num_workers: int | None = None):
     if num_workers is None:
         num_workers = max(1, multiprocessing.cpu_count() - 1)
     
-    # Define solver configurations: (solver_name, metaheuristic_type)
+    # Define all solver configurations
     solver_configs = [
-        ('alns_adaptive_sa', 'alns'),
-        ('ts_tenure5', 'ts'),
+        'alns_adaptive_sa',
+        'alns_greedy_lns',
+        'ts_tenure5',
+        'ts_tenure0',
     ]
     
-    # Create list of all tasks (instance, solver, metaheuristic)
+    # Create list of all tasks (instance, solver_name)
     all_tasks = []
     for instance in INSTANCES:
-        for solver_name, metaheuristic in solver_configs:
-            all_tasks.append((instance, solver_name, metaheuristic))
+        for solver_name in solver_configs:
+            all_tasks.append((instance, solver_name))
     
     print(f"\n{'#'*80}")
     print(f"Starting batch processing")
     print(f"Instances: {len(INSTANCES)}")
-    print(f"Metaheuristics: {len(solver_configs)}")
+    print(f"Solvers: {len(solver_configs)} ({', '.join(solver_configs)})")
     print(f"Total tasks: {len(all_tasks)}")
     print(f"Using {num_workers} parallel workers")
     print(f"{'#'*80}\n")
@@ -248,32 +253,32 @@ def run_batch(num_workers: int | None = None):
             
             # Print progress
             if result.get('skipped'):
-                print(f"[{completed}/{len(all_tasks)}] Skipped: {result['instance']} ({result['metaheuristic']})")
+                print(f"[{completed}/{len(all_tasks)}] Skipped: {result['instance']} ({result['solver']})")
             elif 'error' not in result:
-                print(f"[{completed}/{len(all_tasks)}] Completed: {result['instance']} ({result['metaheuristic']}) - Cost: {result['best_cost']:.2f}")
+                print(f"[{completed}/{len(all_tasks)}] Completed: {result['instance']} ({result['solver']}) - Cost: {result['best_cost']:.2f}")
             else:
-                print(f"[{completed}/{len(all_tasks)}] ERROR: {result['instance']} ({result['metaheuristic']}) - {result['error']}")
+                print(f"[{completed}/{len(all_tasks)}] ERROR: {result['instance']} ({result['solver']}) - {result['error']}")
     
     batch_total_time = time.time() - batch_start_time
     
-    # Sort results by instance name and metaheuristic
-    results_summary.sort(key=lambda x: (x['instance'], x['metaheuristic']))
+    # Sort results by instance name and solver
+    results_summary.sort(key=lambda x: (x['instance'], x['solver']))
     
     # Print summary
     print(f"\n{'#'*80}")
     print(f"BATCH PROCESSING COMPLETE")
     print(f"Total batch time: {batch_total_time:.2f}s")
     print(f"{'#'*80}\n")
-    print(f"{'Instance':<30} {'Method':<10} {'Best Cost':<15} {'Found At (s)':<15} {'Total Time (s)':<15}")
-    print(f"{'-'*90}")
+    print(f"{'Instance':<30} {'Solver':<20} {'Best Cost':<15} {'Found At (s)':<15} {'Total Time (s)':<15}")
+    print(f"{'-'*100}")
     
     for result in results_summary:
         if result.get('skipped'):
-            print(f"{result['instance']:<30} {result['metaheuristic']:<10} SKIPPED")
+            print(f"{result['instance']:<30} {result['solver']:<20} SKIPPED")
         elif 'error' in result:
-            print(f"{result['instance']:<30} {result['metaheuristic']:<10} ERROR: {result['error']}")
+            print(f"{result['instance']:<30} {result['solver']:<20} ERROR: {result['error']}")
         else:
-            print(f"{result['instance']:<30} {result['metaheuristic']:<10} {result['best_cost']:<15.2f} {result['best_time']:<15.2f} {result['total_time']:<15.2f}")
+            print(f"{result['instance']:<30} {result['solver']:<20} {result['best_cost']:<15.2f} {result['best_time']:<15.2f} {result['total_time']:<15.2f}")
     
     print(f"\n{'#'*80}\n")
 
