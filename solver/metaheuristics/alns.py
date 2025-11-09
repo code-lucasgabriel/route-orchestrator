@@ -135,7 +135,7 @@ class RegretRepair(ALNSRepair):
             for client in clients_to_insert:
                 insertion_options = []
                 
-                # Check 'insert' moves
+                # CORRIGIDO: Checa 'insert' moves em rotas existentes
                 nodes_in_used_routes = _get_nodes_in_used_routes(repaired_sol)
                 for n_neighbor in nodes_in_used_routes:
                     cost = evaluator.evaluate_insertion_cost(
@@ -145,15 +145,17 @@ class RegretRepair(ALNSRepair):
                         move = ('insert', client, n_neighbor)
                         insertion_options.append((cost, move))
                 
-                # Check 'insert_use' moves
+                # CORRIGIDO: Sempre checa 'insert_use', não apenas se insertion_options estiver vazio
+                # Isso permite comparar o custo de abrir nova rota vs inserir em rota existente
                 unused_vehicle_indices = _get_unused_vehicles(repaired_sol)
                 for v_idx in unused_vehicle_indices:
-                    cost = evaluator.evaluate_insert_use_cost(
-                        client=client, vehicle_index=v_idx, sol=repaired_sol
-                    )
-                    if cost < float('inf'):
+                    # Calculate actual cost without penalty subtraction
+                    new_route = [0, client, 0]
+                    route_cost, is_feasible = evaluator._get_route_cost_and_feasibility(new_route, v_idx)
+                    
+                    if is_feasible:
                         move = ('insert_use', client, v_idx)
-                        insertion_options.append((cost, move))
+                        insertion_options.append((route_cost, move))
 
                 # If no feasible insertions, client is unroutable
                 if not insertion_options:
@@ -195,9 +197,10 @@ class RegretRepair(ALNSRepair):
             elif move_type == 'insert_use':
                 repaired_sol.insert_into_vehicle(client=elem1, vehicle_index=elem2)
             
-            repaired_sol.cost = best_cost # Update cost
             clients_to_insert.remove(client_to_insert)
 
+        # Final evaluation to ensure cost is set correctly
+        repaired_sol.cost = evaluator.evaluate(repaired_sol)
         return repaired_sol
 
 
@@ -397,6 +400,9 @@ class GreedyRepair(ALNSRepair):
         """
         Finds the best move ('insert' or 'insert_use') for a single client.
         Returns (best_cost, best_move_tuple).
+        
+        IMPORTANTE: Avalia TODOS os movimentos (insert e insert_use) e escolhe
+        o de menor custo, não priorizando arbitrariamente rotas existentes.
         """
         best_move = None
         
@@ -407,6 +413,7 @@ class GreedyRepair(ALNSRepair):
             best_cost = float('-inf')
             is_better = lambda new, old: new > old
 
+        # 1. Avalia a inserção em rotas existentes
         nodes_in_used_routes = _get_nodes_in_used_routes(solution)
         for n_neighbor in nodes_in_used_routes:
             move = ('insert', client, n_neighbor)
@@ -419,15 +426,18 @@ class GreedyRepair(ALNSRepair):
                 best_cost = cost
                 best_move = move
 
+        # 2. Avalia a abertura de novas rotas (e compara com o best_cost atual)
+        # CORRIGIDO: Agora sempre avalia insert_use, não apenas quando best_cost == inf
         unused_vehicle_indices = _get_unused_vehicles(solution)
         for v_idx in unused_vehicle_indices:
             move = ('insert_use', client, v_idx)
-            cost = evaluator.evaluate_insert_use_cost(
-                client=client, vehicle_index=v_idx, sol=solution
-            )
             
-            if is_better(cost, best_cost):
-                best_cost = cost
+            # Calcula o custo real de abrir uma nova rota
+            new_route = [0, client, 0]
+            route_cost, is_feasible = evaluator._get_route_cost_and_feasibility(new_route, v_idx)
+            
+            if is_feasible and is_better(route_cost, best_cost):
+                best_cost = route_cost
                 best_move = move
                 
         return best_cost, best_move
@@ -442,12 +452,26 @@ class GreedyRepair(ALNSRepair):
         # 1. Find all clients that need to be re-inserted
         clients_to_insert = _get_unvisited_clients(repaired_sol, problem)
         
-        # Randomize the insertion order
-        random.shuffle(clients_to_insert)
+        # Sort clients by time window start (earlier clients first)
+        # This helps maintain feasibility when reinserting
+        clients_to_insert.sort(key=lambda c: problem.e[c])
+        
+        # Track unroutable clients to prevent infinite loops
+        unroutable_clients = []
+        max_attempts = 3  # Maximum attempts to insert each client
+        attempt_count = {}
         
         # 2. Iteratively insert each client
         while clients_to_insert:
             client = clients_to_insert.pop(0)
+            
+            # Track attempts for this client
+            attempt_count[client] = attempt_count.get(client, 0) + 1
+            
+            # If we've tried too many times, mark as unroutable
+            if attempt_count[client] > max_attempts:
+                unroutable_clients.append(client)
+                continue
             
             best_cost, best_move = self._find_best_insertion(
                 client, repaired_sol, evaluator
@@ -462,8 +486,18 @@ class GreedyRepair(ALNSRepair):
                 elif move_type == 'insert_use':
                     repaired_sol.insert_into_vehicle(client=elem1, vehicle_index=elem2)
             else:
-                pass 
-                
+                # No feasible move found, try again later if attempts remain
+                if attempt_count[client] < max_attempts:
+                    clients_to_insert.append(client)
+                else:
+                    unroutable_clients.append(client)
+        
+        # Warn if there are unroutable clients
+        if unroutable_clients:
+            print(f"Warning: GreedyRepair could not insert {len(unroutable_clients)} clients: {unroutable_clients[:10]}")
+        
+        # Final evaluation to ensure cost is set correctly
+        repaired_sol.cost = evaluator.evaluate(repaired_sol)
         return repaired_sol
     
 # A list of destroy operators to choose from

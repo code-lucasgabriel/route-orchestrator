@@ -118,45 +118,88 @@ def run_solver_for_instance(instance_path: str, solver_name: str):
         exec_log.flush()
         
         # Run the solver with custom callback to log progress
-        print(f"\nRunning solver for {instance_name}...\n")
+        print(f"\nRunning {solver_name} for {instance_name}...")
         
-        # Store original solve method
-        original_update = solver._update_solution
+        # Check solver attributes
+        has_update_method = hasattr(solver, '_update_solution')
         
-        def logged_update(candidate_sol):
-            """Wrapper to log each improvement"""
-            nonlocal best_cost, best_solution, best_time
+        # Wrap _update_solution to log improvements
+        if has_update_method:
+            # Track best internally
+            tracked_best_cost = best_cost
+            tracked_best_solution = best_solution
             
-            # Call original update
-            original_update(candidate_sol)
+            # CORRIGIDO: Armazena o MÉTODO BOUND original, não a função unbound
+            original_bound_method = solver._update_solution
             
-            # Check if this is a new best
-            if solver.best_solution.cost < best_cost:
-                best_cost = solver.best_solution.cost
-                best_solution = solver.best_solution.copy()
-                best_time = time.time() - start_time
+            def logged_update(self, candidate_sol):
+                """Wrapper to log each improvement"""
+                nonlocal best_cost, best_solution, best_time, tracked_best_cost, tracked_best_solution
                 
-                # Log to execution file: [cost, time] list and fleet-grouped routes
-                exec_log.write(f"[{best_cost:.2f}, {best_time:.2f}]\n")
-                
-                # Group routes by fleet and write them
-                fleet_routes = group_routes_by_fleet(best_solution, problem)
-                for fleet_type in sorted(fleet_routes.keys()):
-                    exec_log.write(f"{fleet_type}: {fleet_routes[fleet_type]}\n")
-                exec_log.flush()
-                
-                print(f"New best solution found: {best_cost:.2f} (at {best_time:.2f}s)")
-        
-        # Temporarily replace the update method
-        solver._update_solution = logged_update
-        
-        try:
-            final_solution = solver.solve(problem, evaluator, initial_sol)
-        finally:
-            # Restore original method
-            solver._update_solution = original_update
+                # Check if this is an improvement BEFORE calling original
+                if candidate_sol is not None and hasattr(candidate_sol, 'cost') and candidate_sol.cost is not None:
+                    if candidate_sol.cost < tracked_best_cost:
+                        # This IS an improvement!
+                        tracked_best_cost = candidate_sol.cost
+                        tracked_best_solution = candidate_sol.copy()
+                        best_cost = tracked_best_cost
+                        best_solution = tracked_best_solution
+                        best_time = time.time() - start_time
+                        
+                        # Log to execution file
+                        exec_log.write(f"[{best_cost:.2f}, {best_time:.2f}]\n")
+                        fleet_routes = group_routes_by_fleet(best_solution, problem)
+                        for fleet_type in sorted(fleet_routes.keys()):
+                            exec_log.write(f"{fleet_type}: {fleet_routes[fleet_type]}\n")
+                        exec_log.flush()
+                                        
+                # CORRIGIDO: Chama o MÉTODO BOUND original (ele já sabe quem é o 'self')
+                original_bound_method(candidate_sol)
+            
+            # Bind the wrapped method to the instance
+            import types
+            solver._update_solution = types.MethodType(logged_update, solver)
+            
+            try:
+                print(f"  → Calling solve()...")
+                final_solution = solver.solve(problem, evaluator, initial_sol)
+                print(f"  → Solve completed")
+            except Exception as e:
+                print(f"  → ERROR during solve: {e}")
+                import traceback
+                traceback.print_exc()
+                raise
+            finally:
+                # CORRIGIDO: Restaura o MÉTODO BOUND original, não a função unbound
+                solver._update_solution = original_bound_method
+        else:
+            print(f"  → No _update_solution method, running solve directly")
+            try:
+                final_solution = solver.solve(problem, evaluator, initial_sol)
+                print(f"  → Solve completed")
+            except Exception as e:
+                print(f"  → ERROR during solve: {e}")
+                import traceback
+                traceback.print_exc()
+                raise
         
         total_time = time.time() - start_time
+        
+        # Ensure we have the final best solution from the solver
+        if hasattr(solver, 'best_solution') and solver.best_solution is not None:
+            final_cost = evaluator.evaluate(solver.best_solution)
+            if final_cost < best_cost:
+                best_cost = final_cost
+                best_solution = solver.best_solution.copy()
+                best_time = total_time  # If we missed it during iteration, mark as found at end
+        
+        # Also check the returned solution
+        if final_solution is not None:
+            final_cost = evaluator.evaluate(final_solution)
+            if final_cost < best_cost:
+                best_cost = final_cost
+                best_solution = final_solution.copy()
+                best_time = total_time
     
     # Write results file with new format
     with open(results_file, 'w') as res_log:
