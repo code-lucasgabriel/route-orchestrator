@@ -55,34 +55,63 @@
                               ▼
 
 ┌─────────────────────────────────────────────────────────────────┐
-│                   STEP 3: Generate Plots                         │
+│                   STEP 3: Generate Plots (v7)                    │
 │                                                                   │
 │  $ python plotter.py                                             │
 │                                                                   │
-│  Creates plots/ directory with:                                  │
+│  Creates plots/ directory with publication-defining visuals:     │
 │                                                                   │
-│  📊 TTT Plots (24 files)                                         │
-│     ttt_C1_100.png   ttt_C2_100.png   ttt_R1_100.png   ...      │
-│     ttt_C1_400.png   ttt_C2_400.png   ttt_R1_400.png   ...      │
-│     ...                                                          │
+│  📊 TTT Plots (4 files: 2 PNG + 2 PDF)                           │
+│     ttt_combined_by_size.png/.pdf                                │
+│     ttt_combined_by_category.png/.pdf                            │
+│     • Step-function ECDFs (statistical precision)                │
+│     • 4-color palette (perceptual clarity)                       │
+│     • Automatic label collision prevention ⭐ NEW               │
+│     • Success rates annotated (e.g., "25.6%", "0.0%")            │
+│     • Legend in right margin (collision-free) ⭐ NEW            │
 │                                                                   │
-│  📈 Performance Profiles (11 files)                              │
-│     performance_profile.png          (overall, 236 instances)    │
-│     performance_profile_100.png      (by size)                   │
-│     performance_profile_400.png                                  │
-│     performance_profile_800.png                                  │
-│     performance_profile_1000.png                                 │
-│     performance_profile_C1.png       (by category)               │
-│     performance_profile_C2.png                                   │
-│     performance_profile_R1.png                                   │
-│     performance_profile_R2.png                                   │
-│     performance_profile_RC1.png                                  │
-│     performance_profile_RC2.png                                  │
+│  📈 Performance Profiles (4 files: 2 PNG + 2 PDF)                │
+│     performance_profile_combined_by_size.png/.pdf                │
+│     performance_profile_overall.png/.pdf                         │
+│     • 4 distinct colors (no overlapping blue lines) ⭐ NEW      │
+│     • Elegant leader-line annotations ⭐ NEW                    │
+│     • Win rate annotated (e.g., "77.5%")                         │
+│     • Legend in right margin (collision-free) ⭐ NEW            │
 │                                                                   │
-│  📉 Convergence Examples (3 files)                               │
-│     convergence_C1_1_01.png                                      │
-│     convergence_C1_1_02.png                                      │
-│     convergence_C1_1_03.png                                      │
+│  📉 Convergence Examples (6 files: 3 PNG + 3 PDF)                │
+│     convergence_C1_10_1.png/.pdf                                 │
+│     convergence_C1_10_10.png/.pdf                                │
+│     convergence_C1_10_2.png/.pdf                                 │
+│     • Target benchmark line (from TTT) ⭐ CRITICAL NEW          │
+│     • Shaded phase regions (background) ⭐ NEW                  │
+│     • 4-color consistency ⭐ NEW                                │
+│     • Even marker spacing (markevery=0.1)                        │
+│                                                                   │
+│  📄 Summary Statistics (3 CSV files)                             │
+│     summary_overall.csv                                          │
+│     summary_by_size.csv                                          │
+│     summary_by_category.csv                                      │
+│                                                                   │
+│  Publication-Defining Features (v7):                             │
+│  ━━━ PILLAR I: NARRATIVE INTEGRATION ━━━                         │
+│  ✓ Target benchmark on convergence (explains TTT results)        │
+│  ━━━ PILLAR II: PERCEPTUAL-FIRST ENCODING ━━━                    │
+│  ✓ 4-color distinct palette (eliminates ambiguity)               │
+│  ✓ Colorblind-safe (IBM palette)                                 │
+│  ━━━ PILLAR III: AUTOMATED AESTHETIC REFINEMENT ━━━              │
+│  ✓ Automatic label collision prevention                          │
+│  ✓ Elegant leader-line annotations                               │
+│  ✓ Collision-free legend placement                               │
+│  ✓ Non-intrusive phase regions                                   │
+│                                                                   │
+│  Plus all v6 foundations:                                        │
+│  ✓ Statistical honesty (TS 0% success shown)                     │
+│  ✓ Statistical precision (Step-function ECDFs)                   │
+│  ✓ Professional aesthetics (Serif fonts, minimal grids)          │
+│  ✓ Vector output (PDF files for manuscript)                      │
+│                                                                   │
+│  Total: 17 files (7 PNG + 7 PDF + 3 CSV)                         │
+└───────────────────────────────────────────────────────────────────┘
 │                                                                   │
 │  📋 Summary Statistics (3 files)                                 │
 │     summary_overall.csv                                          │
