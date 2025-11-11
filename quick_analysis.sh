@@ -9,13 +9,28 @@ echo "HFFVRPTW Performance Analysis Quick Start"
 echo "=========================================="
 echo ""
 
-# Check if Python is available
-if ! command -v python &> /dev/null; then
-    echo "ERROR: Python not found. Please install Python 3.8+."
+# Set Python to use local venv with python3.14
+VENV_PATH="venv/bin/python3.14"
+VENV_PIP="venv/bin/pip"
+
+# Check if venv exists, if not create it
+if [ ! -d "venv" ]; then
+    echo "Creating virtual environment with python3.14..."
+    python3.14 -m venv venv
+    echo "✓ Virtual environment created"
+fi
+
+# Use venv python
+PYTHON="$VENV_PATH"
+PIP="$VENV_PIP"
+
+if [ ! -f "$PYTHON" ]; then
+    echo "ERROR: Python 3.14 venv not found at $PYTHON"
+    echo "Please create venv with: python3.14 -m venv venv"
     exit 1
 fi
 
-echo "✓ Python found: $(python --version)"
+echo "✓ Using Python: $($PYTHON --version) from venv"
 echo ""
 
 # Check if logs exist
@@ -32,26 +47,26 @@ echo ""
 # Install dependencies
 echo "Step 1: Installing dependencies..."
 echo "------------------------------------"
-pip install -q -r requirements.txt
+$PIP install -q -r requirements.txt
 echo "✓ Dependencies installed"
 echo ""
 
 # Test parser
 echo "Step 2: Testing parser..."
 echo "-------------------------"
-python test_parser.py
+$PYTHON test_parser.py
 echo ""
 
 # Parse logs
 echo "Step 3: Parsing logs..."
 echo "-----------------------"
-python parser.py
+$PYTHON parser.py
 echo ""
 
 # Generate plots
 echo "Step 4: Generating plots..."
 echo "---------------------------"
-python plotter.py
+$PYTHON plotter.py
 echo ""
 
 # Summary

@@ -309,6 +309,215 @@ def generate_all_performance_profiles(df: pd.DataFrame, output_dir: Path):
         generate_performance_profile(df, output_dir, filter_category=category)
 
 
+def generate_combined_ttt_by_size(df: pd.DataFrame, output_dir: Path, target_percentile: float = 95):
+    """
+    Generate a 2x2 combined TTT plot showing all 4 customer sizes in one figure.
+    Each subplot aggregates all categories for that size.
+    """
+    print("\n" + "="*80)
+    print("GENERATING COMBINED TTT PLOT BY SIZE")
+    print("="*80)
+    
+    sizes = sorted(df['cust_size'].unique())
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    axes = axes.flatten()
+    
+    for idx, cust_size in enumerate(sizes):
+        ax = axes[idx]
+        subset = df[df['cust_size'] == cust_size]
+        instances = subset['instance'].unique()
+        
+        print(f"  Processing {cust_size} customers ({len(instances)} instances)")
+        
+        algorithms = subset['algorithm'].unique()
+        
+        for alg in sorted(algorithms):
+            alg_subset = subset[subset['algorithm'] == alg]
+            all_ttt = []
+            
+            for instance in instances:
+                inst_data = alg_subset[alg_subset['instance'] == instance].iloc[0]
+                target = compute_target_value(df, instance, target_percentile)
+                
+                loss_hist = inst_data['loss_history']
+                time_hist = inst_data['time_history']
+                
+                if len(loss_hist) > 0 and len(time_hist) > 0:
+                    target_idx = np.where(loss_hist <= target)[0]
+                    if len(target_idx) > 0:
+                        ttt = time_hist[target_idx[0]]
+                        all_ttt.append(ttt)
+            
+            if len(all_ttt) > 0:
+                all_ttt_sorted = np.sort(all_ttt)
+                n = len(all_ttt_sorted)
+                proportions = np.arange(1, n + 1) / len(instances)
+                
+                ax.plot(all_ttt_sorted, proportions, 
+                       label=ALGORITHM_LABELS.get(alg, alg),
+                       color=ALGORITHM_COLORS.get(alg),
+                       linewidth=2.5, marker='o', markersize=4, alpha=0.8)
+        
+        ax.set_title(f'{cust_size} Customers ({len(instances)} instances)', 
+                    fontsize=13, fontweight='bold')
+        ax.set_xlabel('Time (seconds)', fontsize=11)
+        ax.set_ylabel('Proportion Reaching Target', fontsize=11)
+        ax.set_xscale('log')
+        ax.set_xlim(left=0.1)
+        ax.set_ylim(0, 1.05)
+        ax.grid(True, which="both", linestyle=':', linewidth=0.6, alpha=0.7)
+        ax.legend(loc='lower right', fontsize=10)
+    
+    fig.suptitle(f'Time-To-Target Plots by Customer Size\n(Target = {target_percentile}th percentile)',
+                fontsize=15, fontweight='bold', y=0.995)
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.99])
+    filename = "ttt_combined_by_size.png"
+    plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"  Saved: {filename}")
+
+
+def generate_combined_ttt_by_category(df: pd.DataFrame, output_dir: Path, target_percentile: float = 95):
+    """
+    Generate a 2x3 combined TTT plot showing all 6 categories in one figure.
+    Each subplot aggregates all sizes for that category.
+    """
+    print("\n" + "="*80)
+    print("GENERATING COMBINED TTT PLOT BY CATEGORY")
+    print("="*80)
+    
+    categories = sorted(df['category'].unique())
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+    axes = axes.flatten()
+    
+    for idx, category in enumerate(categories):
+        ax = axes[idx]
+        subset = df[df['category'] == category]
+        instances = subset['instance'].unique()
+        
+        print(f"  Processing category {category} ({len(instances)} instances)")
+        
+        algorithms = subset['algorithm'].unique()
+        
+        for alg in sorted(algorithms):
+            alg_subset = subset[subset['algorithm'] == alg]
+            all_ttt = []
+            
+            for instance in instances:
+                inst_data = alg_subset[alg_subset['instance'] == instance].iloc[0]
+                target = compute_target_value(df, instance, target_percentile)
+                
+                loss_hist = inst_data['loss_history']
+                time_hist = inst_data['time_history']
+                
+                if len(loss_hist) > 0 and len(time_hist) > 0:
+                    target_idx = np.where(loss_hist <= target)[0]
+                    if len(target_idx) > 0:
+                        ttt = time_hist[target_idx[0]]
+                        all_ttt.append(ttt)
+            
+            if len(all_ttt) > 0:
+                all_ttt_sorted = np.sort(all_ttt)
+                n = len(all_ttt_sorted)
+                proportions = np.arange(1, n + 1) / len(instances)
+                
+                ax.plot(all_ttt_sorted, proportions, 
+                       label=ALGORITHM_LABELS.get(alg, alg),
+                       color=ALGORITHM_COLORS.get(alg),
+                       linewidth=2.5, marker='o', markersize=4, alpha=0.8)
+        
+        ax.set_title(f'Category {category} ({len(instances)} instances)', 
+                    fontsize=13, fontweight='bold')
+        ax.set_xlabel('Time (seconds)', fontsize=11)
+        ax.set_ylabel('Proportion Reaching Target', fontsize=11)
+        ax.set_xscale('log')
+        ax.set_xlim(left=0.1)
+        ax.set_ylim(0, 1.05)
+        ax.grid(True, which="both", linestyle=':', linewidth=0.6, alpha=0.7)
+        ax.legend(loc='lower right', fontsize=9)
+    
+    fig.suptitle(f'Time-To-Target Plots by Problem Category\n(Target = {target_percentile}th percentile)',
+                fontsize=15, fontweight='bold', y=0.995)
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.99])
+    filename = "ttt_combined_by_category.png"
+    plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"  Saved: {filename}")
+
+
+def generate_combined_performance_profiles(df: pd.DataFrame, output_dir: Path):
+    """
+    Generate a 2x2 combined performance profile showing all sizes in one figure.
+    """
+    print("\n" + "="*80)
+    print("GENERATING COMBINED PERFORMANCE PROFILE BY SIZE")
+    print("="*80)
+    
+    sizes = sorted(df['cust_size'].unique())
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    axes = axes.flatten()
+    
+    for idx, cust_size in enumerate(sizes):
+        ax = axes[idx]
+        subset = df[df['cust_size'] == cust_size]
+        
+        print(f"  Processing {cust_size} customers")
+        
+        instances = subset['instance'].unique()
+        algorithms = subset['algorithm'].unique()
+        
+        # For each instance, find the best solution
+        best_solutions = {}
+        for instance in instances:
+            inst_data = subset[subset['instance'] == instance]
+            best_solutions[instance] = inst_data['final_loss'].min()
+        
+        # For each algorithm, compute performance ratios
+        for alg in sorted(algorithms):
+            alg_data = subset[subset['algorithm'] == alg]
+            ratios = []
+            
+            for _, row in alg_data.iterrows():
+                instance = row['instance']
+                best = best_solutions[instance]
+                ratio = best / row['final_loss'] if row['final_loss'] > 0 else 1.0
+                ratios.append(ratio)
+            
+            # Sort ratios for cumulative distribution
+            ratios_sorted = np.sort(ratios)
+            n = len(ratios_sorted)
+            probabilities = np.arange(1, n + 1) / n
+            
+            ax.plot(ratios_sorted, probabilities,
+                   label=ALGORITHM_LABELS.get(alg, alg),
+                   color=ALGORITHM_COLORS.get(alg),
+                   linewidth=2.5, marker='o', markersize=3, alpha=0.8)
+        
+        ax.set_title(f'{cust_size} Customers ({len(instances)} instances)',
+                    fontsize=13, fontweight='bold')
+        ax.set_xlabel('Performance Ratio (τ = best/algorithm)', fontsize=11)
+        ax.set_ylabel('P(ratio ≥ τ)', fontsize=11)
+        ax.set_xlim(0.85, 1.01)
+        ax.set_ylim(0, 1.05)
+        ax.axvline(x=1.0, color='gray', linestyle='--', linewidth=1, alpha=0.5)
+        ax.grid(True, linestyle=':', linewidth=0.6, alpha=0.7)
+        ax.legend(loc='lower left', fontsize=10)
+    
+    fig.suptitle('Performance Profiles by Customer Size',
+                fontsize=15, fontweight='bold', y=0.995)
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.99])
+    filename = "performance_profile_combined_by_size.png"
+    plt.savefig(output_dir / filename, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"  Saved: {filename}")
+
+
 def generate_convergence_plot(df: pd.DataFrame, instance: str, output_dir: Path):
     """
     Generate convergence plot for a specific instance showing solution quality over time.
@@ -345,42 +554,74 @@ def generate_convergence_plot(df: pd.DataFrame, instance: str, output_dir: Path)
 
 
 def generate_summary_statistics(df: pd.DataFrame, output_dir: Path):
-    """Generate summary statistics tables."""
+    """Generate summary statistics tables with clean CSV formatting."""
     print("\n" + "="*80)
-    print("Summary Statistics")
+    print("SUMMARY STATISTICS")
     print("="*80)
     
-    # Overall summary
-    print("\nOverall Algorithm Performance:")
-    summary = df.groupby('algorithm').agg({
-        'final_loss': ['mean', 'std', 'min', 'max'],
-        'final_time': ['mean', 'std', 'min', 'max'],
-        'instance': 'count'
-    }).round(2)
-    print(summary)
+    # Overall summary with clean formatting
+    print("\n  Overall Algorithm Performance")
+    overall_stats = []
+    for alg in sorted(df['algorithm'].unique()):
+        alg_data = df[df['algorithm'] == alg]
+        overall_stats.append({
+            'Algorithm': ALGORITHM_LABELS.get(alg, alg),
+            'Instances': len(alg_data),
+            'Avg_Loss': alg_data['final_loss'].mean(),
+            'Std_Loss': alg_data['final_loss'].std(),
+            'Min_Loss': alg_data['final_loss'].min(),
+            'Max_Loss': alg_data['final_loss'].max(),
+            'Avg_Time': alg_data['final_time'].mean(),
+            'Std_Time': alg_data['final_time'].std()
+        })
+    overall_df = pd.DataFrame(overall_stats)
+    print(overall_df.to_string(index=False))
+    overall_df.to_csv(output_dir / 'summary_overall.csv', index=False, float_format='%.2f')
     
-    # Summary by customer size
-    print("\nPerformance by Customer Size:")
-    summary_size = df.groupby(['cust_size', 'algorithm'])['final_loss'].agg(['mean', 'std', 'count']).round(2)
-    print(summary_size)
+    # By customer size with clean formatting
+    print("\n  Performance by Customer Size")
+    size_stats = []
+    for size in sorted(df['cust_size'].unique()):
+        for alg in sorted(df['algorithm'].unique()):
+            subset = df[(df['cust_size'] == size) & (df['algorithm'] == alg)]
+            if len(subset) > 0:
+                size_stats.append({
+                    'Customer_Size': size,
+                    'Algorithm': ALGORITHM_LABELS.get(alg, alg),
+                    'Instances': len(subset),
+                    'Avg_Loss': subset['final_loss'].mean(),
+                    'Std_Loss': subset['final_loss'].std()
+                })
+    size_df = pd.DataFrame(size_stats)
+    print(size_df.to_string(index=False))
+    size_df.to_csv(output_dir / 'summary_by_size.csv', index=False, float_format='%.2f')
     
-    # Summary by category
-    print("\nPerformance by Category:")
-    summary_cat = df.groupby(['category', 'algorithm'])['final_loss'].agg(['mean', 'std', 'count']).round(2)
-    print(summary_cat)
+    # By category with clean formatting
+    print("\n  Performance by Category")
+    category_stats = []
+    for cat in sorted(df['category'].unique()):
+        for alg in sorted(df['algorithm'].unique()):
+            subset = df[(df['category'] == cat) & (df['algorithm'] == alg)]
+            if len(subset) > 0:
+                category_stats.append({
+                    'Category': cat,
+                    'Algorithm': ALGORITHM_LABELS.get(alg, alg),
+                    'Instances': len(subset),
+                    'Avg_Loss': subset['final_loss'].mean(),
+                    'Std_Loss': subset['final_loss'].std()
+                })
+    category_df = pd.DataFrame(category_stats)
+    print(category_df.to_string(index=False))
+    category_df.to_csv(output_dir / 'summary_by_category.csv', index=False, float_format='%.2f')
     
     # Best algorithm per instance
-    print("\nBest Algorithm Count (instances where each algorithm found best solution):")
+    print("\n  Best Algorithm Count (instances where each algorithm found best solution):")
     best_per_instance = df.loc[df.groupby('instance')['final_loss'].idxmin()]
     best_counts = best_per_instance['algorithm'].value_counts()
-    print(best_counts)
+    for alg, count in best_counts.items():
+        print(f"    {ALGORITHM_LABELS.get(alg, alg)}: {count}")
     
-    # Save to CSV
-    summary.to_csv(output_dir / 'summary_overall.csv')
-    summary_size.to_csv(output_dir / 'summary_by_size.csv')
-    summary_cat.to_csv(output_dir / 'summary_by_category.csv')
-    
-    print(f"\nSummary statistics saved to {output_dir}/summary_*.csv")
+    print(f"\n  Summary statistics saved to {output_dir}/summary_*.csv")
 
 
 def main():
@@ -397,16 +638,25 @@ def main():
     output_dir.mkdir(exist_ok=True)
     print(f"\nOutput directory: {output_dir.absolute()}")
     
-    # Generate all plots
+    # Generate individual TTT plots (24 plots: 6 categories × 4 sizes)
     generate_all_ttt_plots(df, output_dir)
+    
+    # Generate combined TTT plots (2 plots: by size and by category)
+    generate_combined_ttt_by_size(df, output_dir)
+    generate_combined_ttt_by_category(df, output_dir)
+    
+    # Generate individual performance profiles (11 plots: 1 overall + 4 sizes + 6 categories)
     generate_all_performance_profiles(df, output_dir)
+    
+    # Generate combined performance profile (1 plot: 2x2 grid by size)
+    generate_combined_performance_profiles(df, output_dir)
     
     # Generate summary statistics
     generate_summary_statistics(df, output_dir)
     
     # Generate a few example convergence plots (first 3 instances)
     print("\n" + "="*80)
-    print("Generating Example Convergence Plots")
+    print("GENERATING EXAMPLE CONVERGENCE PLOTS")
     print("="*80)
     sample_instances = df['instance'].unique()[:3]
     for instance in sample_instances:
@@ -414,8 +664,20 @@ def main():
         generate_convergence_plot(df, instance, output_dir)
     
     print("\n" + "="*80)
-    print("Analysis Complete!")
-    print(f"All plots saved to: {output_dir.absolute()}")
+    print("ANALYSIS COMPLETE!")
+    print("="*80)
+    print(f"\nGenerated files in {output_dir.absolute()}:")
+    print("  • 24 individual TTT plots (by category and size)")
+    print("  • 2 combined TTT plots (by size and by category)")
+    print("  • 11 individual performance profiles (overall + by size + by category)")
+    print("  • 1 combined performance profile (by size)")
+    print("  • 3 example convergence plots")
+    print("  • 3 summary CSV files")
+    print("\nRecommended for reports:")
+    print("  → ttt_combined_by_size.png (shows all 4 sizes)")
+    print("  → ttt_combined_by_category.png (shows all 6 categories)")
+    print("  → performance_profile_combined_by_size.png (shows all 4 sizes)")
+    print("  → performance_profile.png (overall comparison)")
     print("="*80)
 
 
