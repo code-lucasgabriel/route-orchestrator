@@ -1,0 +1,7 @@
+,final_loss,final_loss,final_loss,final_loss,final_time,final_time,final_time,final_time,instance
+,mean,std,min,max,mean,std,min,max,count
+algorithm,,,,,,,,,
+alns_adaptive_sa,108411.26,93826.03,1163.85,325099.86,506.36,133.47,0.0,621.13,236
+alns_greedy_lns,94222.45,82125.68,1086.32,302194.14,527.18,129.53,39.61,601.14,236
+ts_tenure0,129215.6,110400.0,1192.92,358469.51,545.38,218.44,26.48,795.18,236
+ts_tenure5,129188.07,110375.57,1192.92,357485.25,547.46,222.26,15.48,786.14,236

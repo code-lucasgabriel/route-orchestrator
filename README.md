@@ -27,6 +27,7 @@ Route Orchestrator implements a comprehensive metaheuristic optimization framewo
 - [Usage](#usage)
 - [Data Structure](#data-structure)
 - [Logging System](#logging-system)
+- [Performance Analysis & Plotting](#performance-analysis--plotting)
 - [Parallel Processing](#parallel-processing)
 - [Solver Configuration](#solver-configuration)
 - [Advanced Usage](#advanced-usage)
@@ -392,6 +393,93 @@ with open('logs/alns/results/C1_1_01.txt', 'r') as f:
         fleet_type, routes = line.strip().split(': ', 1)
         fleet_routes[fleet_type] = ast.literal_eval(routes)
 ```
+
+---
+
+## Performance Analysis & Plotting
+
+After running your experiments, you can generate comprehensive performance visualizations and statistical analyses.
+
+### Quick Start
+
+1. **Parse logs into efficient format:**
+   ```bash
+   python parser.py
+   ```
+   Creates `results.parquet` with all experimental data in analysis-ready format.
+
+2. **Generate plots:**
+   ```bash
+   python plotter.py
+   ```
+   Creates `plots/` directory with TTT plots, performance profiles, and convergence curves.
+
+### Generated Visualizations
+
+**Time-To-Target (TTT) Plots:**
+- `ttt_<category>_<size>.png` - Probability of reaching target solution over time
+- One plot per category/size combination (24 plots total)
+- Shows which algorithm converges fastest to high-quality solutions
+
+**Performance Profiles:**
+- `performance_profile.png` - Overall algorithm comparison (all 236 instances)
+- `performance_profile_<size>.png` - By customer size (4 plots)
+- `performance_profile_<category>.png` - By problem category (6 plots)
+- Shows solution quality consistency across diverse instances
+
+**Convergence Examples:**
+- `convergence_<instance>.png` - Objective value evolution over time
+- Generated for sample instances to show detailed algorithm behavior
+
+**Summary Statistics:**
+- `summary_overall.csv` - Mean, std, min, max per algorithm
+- `summary_by_size.csv` - Performance by customer size
+- `summary_by_category.csv` - Performance by problem category
+
+### Data Schema
+
+The parsed `results.parquet` file uses an efficient columnar format:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `algorithm` | str | `alns_adaptive_sa`, `alns_greedy_lns`, `ts_tenure5`, `ts_tenure0` |
+| `instance` | str | Instance name (e.g., `C1_1_01`) |
+| `category` | str | `C1`, `C2`, `R1`, `R2`, `RC1`, `RC2` |
+| `cust_size` | int | 100, 400, 800, or 1000 |
+| `final_loss` | float | Best objective value found |
+| `final_time` | float | Time when best solution was found (seconds) |
+| `loss_history` | np.array | Convergence trajectory (all improvements) |
+| `time_history` | np.array | Timestamps for each improvement |
+| `final_solution` | dict | Fleet routes `{'A': [[...]], 'B': [[...]]}` |
+
+### Custom Analysis
+
+Load the data for statistical analysis:
+
+```python
+import pandas as pd
+import numpy as np
+
+df = pd.read_parquet('results.parquet')
+
+# Average solution quality by algorithm
+avg_by_alg = df.groupby('algorithm')['final_loss'].mean()
+print(avg_by_alg)
+
+# Best algorithm per instance
+best_per_instance = df.loc[df.groupby('instance')['final_loss'].idxmin()]
+win_counts = best_per_instance['algorithm'].value_counts()
+print(win_counts)
+
+# Statistical tests
+from scipy.stats import wilcoxon
+alns = df[df['algorithm'] == 'alns_adaptive_sa'].sort_values('instance')
+ts = df[df['algorithm'] == 'ts_tenure5'].sort_values('instance')
+stat, pval = wilcoxon(alns['final_loss'], ts['final_loss'])
+print(f"Wilcoxon test p-value: {pval}")
+```
+
+For detailed documentation, see **[PLOTTING_README.md](PLOTTING_README.md)**.
 
 ---
 
