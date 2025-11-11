@@ -1,32 +1,32 @@
-import csv
 import os
+import json
+from typing import List
+from np_solver.core import BaseSolution
+import shutil
+import tempfile
 
-def log_experiment_data(results_dir, filename, data_row):
+def save_solution_json(results_dir: str, filename: str, solution_data: BaseSolution):
     """
-    Appends a dictionary of data as a new row to a CSV file.
-
-    This function handles directory creation, file creation, and
-    CSV header writing automatically.
+    Saves a final solution as a compact, single-line JSON file,
+    wrapped in a dictionary.
 
     Args:
-        results_dir (str): The path to the directory (e.g., 'logs/').
-        filename (str): The name of the file (e.g., 'experiment_1.csv').
-        data_row (dict): The data to log (e.g., {'epoch': 1, 'loss': 0.5}).
+        results_dir: The path to the directory (e.g., 'results/').
+        filename: The name of the file (e.g., 'solution_1.json').
+        solution_data: The solution data to save.
     """
     
     os.makedirs(results_dir, exist_ok=True)
     
     filepath = os.path.join(results_dir, filename)
-    file_exists = os.path.exists(filepath)
 
-    is_empty = os.path.getsize(filepath) == 0 if file_exists else True
-    write_header = not file_exists or is_empty
-    fieldnames = data_row.keys()
+    data = {}
+    for i, route in enumerate(solution_data):
+        data[f"Vehicle_{i}"] = route
 
-    with open(filepath, 'a', newline='') as f:        
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        
-        if write_header:
-            writer.writeheader()
+    data_to_save = {
+        "solution": {"Routes": data, "Total Cost": solution_data.cost}
+    }
 
-        writer.writerow(data_row)
+    with open(filepath, 'w') as f:
+        json.dump(data_to_save, f)
