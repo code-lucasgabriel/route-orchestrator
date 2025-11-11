@@ -27,7 +27,7 @@
     "type": "X",
     "count": 1000,
     "capacity": 200,
-    "latest_return_time": 1236,
+    "latest_return_time": 240,
     "fixed_cost": 1000,
     "variable_cost": 1.5
   }
