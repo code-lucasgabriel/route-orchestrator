@@ -1,19 +1,20 @@
 # Route Orchestrator
 
-A high-performance optimization suite for solving the **Heterogeneous Fixed Fleet Vehicle Routing Problem with Time Windows (HFFVRPTW)** using state-of-the-art metaheuristic algorithms.
+A high-performance optimization suite for solving the **Heterogeneous Fixed Fleet Vehicle Routing Problem with Time Windows (HFFVRPTW)** using state-of-the-art metaheuristic algorithms with comprehensive performance analysis and publication-quality visualization.
 
 ## Overview
 
-Route Orchestrator implements a comprehensive metaheuristic optimization framework featuring **Adaptive Large Neighborhood Search (ALNS)** and **Tabu Search (TS)** algorithms, with intelligent parallel batch processing to efficiently solve complex vehicle routing problems with heterogeneous fleets and strict time window constraints.
+Route Orchestrator implements a complete metaheuristic optimization framework featuring **Adaptive Large Neighborhood Search (ALNS)** and **Tabu Search (TS)** algorithms, with intelligent parallel batch processing, automated result parsing, and advanced statistical visualization to efficiently solve complex vehicle routing problems with heterogeneous fleets and strict time window constraints.
 
 **Key Features:**
 
 - **Four Metaheuristic Variants** - ALNS with Simulated Annealing, ALNS with Greedy LNS, Tabu Search with Tenure 5, and Tabu Search with Tenure 0
 - **Parallel Batch Processing** - Multi-core CPU utilization with intelligent task distribution and process-safe state management
-- **Advanced ALNS Operators** - Shaw (relatedness-based) and Worst (cost-based) destroy operators, Greedy and Regret-k repair operators
+- **Automated Log Parsing** - Consolidated analysis-ready data extraction from raw experiment logs
+- **Publication-Quality Visualizations** - 13 plot types with 4-color distinct palette, statistical rigor, and vector output
+- **Advanced Statistical Analysis** - Distributional analysis, aggregated convergence, dominance heatmaps, and time-to-quality profiles
 - **Fleet-Aware Routing** - Support for heterogeneous vehicle fleets with varying capacities and costs
 - **Time Window Constraints** - Strict adherence to customer service time windows
-- **Comprehensive Logging** - Detailed execution tracking with solution evolution and fleet-grouped route output
 - **Scalable Architecture** - Handles instances from 100 to 1000+ customers
 
 ---
@@ -23,16 +24,13 @@ Route Orchestrator implements a comprehensive metaheuristic optimization framewo
 - [Features](#features)
 - [Project Structure](#project-structure)
 - [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
+- [Quick Start](#quick-start)
+- [Performance Analysis](#performance-analysis)
 - [Data Structure](#data-structure)
-- [Logging System](#logging-system)
-- [Performance Analysis & Plotting](#performance-analysis--plotting)
-- [Parallel Processing](#parallel-processing)
-- [Solver Configuration](#solver-configuration)
-- [Advanced Usage](#advanced-usage)
 - [Algorithm Details](#algorithm-details)
-- [Performance](#performance)
+- [Benchmark Results](#benchmark-results)
+- [Advanced Usage](#advanced-usage)
+- [Citation](#citation)
 
 ---
 
@@ -40,7 +38,7 @@ Route Orchestrator implements a comprehensive metaheuristic optimization framewo
 
 ### Optimization Algorithms
 
-**Adaptive Large Neighborhood Search (ALNS)**
+#### Adaptive Large Neighborhood Search (ALNS)
 
 - **Two ALNS variants**:
   - `alns_adaptive_sa` - Adaptive operator selection with Simulated Annealing acceptance
@@ -57,7 +55,7 @@ Route Orchestrator implements a comprehensive metaheuristic optimization framewo
 - **Adaptive operator selection** - Roulette Wheel mechanism with dynamic weight management
 - **Simulated Annealing acceptance** - Temperature-based solution acceptance
 
-**Tabu Search (TS)**
+#### Tabu Search (TS)
 
 - **Two TS variants**:
   - `ts_tenure5` - Tabu tenure of 5 iterations
@@ -71,15 +69,45 @@ Route Orchestrator implements a comprehensive metaheuristic optimization framewo
 - **Efficient delta evaluation** - Fast move cost estimation
 - **Diversification support** - Automatic vehicle activation when needed
 
+### Analysis & Visualization Suite
+
+#### Core Performance Metrics
+
+- **Time-to-Target (TTT) Plots** - Step-function ECDFs showing probability of reaching best-found solution over time
+- **Performance Profiles** - Dolan-Moré ratio plots comparing algorithm quality across all instances
+- **Convergence Plots** - Solution quality evolution with target benchmarks and search phase annotations
+- **Summary Statistics** - Comprehensive CSV reports by algorithm, size, and category
+
+#### Advanced Distributional Analysis
+
+- **Violin Plots** - Full loss distribution visualization by customer size and problem category
+- **Mean vs. Median Comparison** - Quantifies distribution skew (ALNS-Greedy: +49.18% difference)
+- **Log-scale Y-axis** - Handles different magnitude scales across instance types
+- **Inner Box Plots** - Shows quartiles and outliers within distributions
+
+#### Aggregated Temporal Analysis
+
+- **Median Convergence Curves** - Aggregates 236 instances per algorithm into typical behavior patterns
+- **IQR Error Bands** - Shows 25th-75th percentile variability (shaded regions)
+- **Forward-Fill Interpolation** - Respects step-function nature of "best-so-far" values
+- **Log-Log Scale** - Reveals convergence patterns across time and quality dimensions
+
+#### Advanced Narrative Integration
+
+- **Pairwise Dominance Heatmap** - Win rate matrix showing head-to-head algorithm performance
+- **Time-to-Quality (TTQ) Profiles** - Success rates at multiple target gaps (10%, 5%, 1%, 0%)
+- **4-Gap Analysis** - Shows how algorithms perform from easy to exact targets
+- **Colorblind-Safe Palette** - IBM-certified 4-color scheme for at-a-glance clarity
+
 ### System Capabilities
 
-- **Intelligent Result Caching** - Automatically skips instances with existing solutions to save computation time
-- **Real-time Progress Tracking** - Live updates during batch processing with completion counters
-- **Fleet-Grouped Output** - Routes organized by vehicle type for easy analysis
-- **Unused Vehicle Suppression** - Clean output showing only active routes (excludes [0, 0] routes)
-- **Centralized Configuration** - Single `settings.py` file for time limits and instance selection
-- **Multiprocessing-Safe State** - Proper method binding preservation for parallel execution
-- **Comprehensive Error Handling** - Graceful handling of infeasible instances with detailed warnings
+- **Intelligent Result Caching** - Automatically skips instances with existing solutions
+- **Real-time Progress Tracking** - Live updates during batch processing
+- **Fleet-Grouped Output** - Routes organized by vehicle type
+- **Unused Vehicle Suppression** - Clean output showing only active routes
+- **Multiprocessing-Safe State** - Proper method binding preservation
+- **Vector Graphics Output** - PDF files for publication submission
+- **High-Resolution Raster** - 300 DPI PNG files for presentations
 
 ---
 
@@ -87,63 +115,59 @@ Route Orchestrator implements a comprehensive metaheuristic optimization framewo
 
 ```
 route-orchestrator/
-├── main.py                      # Main batch processing engine
+├── main.py                      # Batch processing engine (parallel execution)
+├── parser.py                    # Log parser (results.parquet generation)
+├── plotter.py                   # Core visualization suite (TTT, PP, convergence, TTQ)
+├── analysis_suite.py            # Advanced analysis (distributions, aggregation, heatmaps)
+├── run_pipeline.sh              # Automated pipeline script (runs all 4 steps)
 ├── settings.py                  # Configuration (TIME_LIMIT, instances)
-├── README.md                    # Documentation
+├── requirements.txt             # Python dependencies
+├── README.md                    # Complete documentation
 │
 ├── data/
 │   ├── instances/              # Problem instance files (CSV format)
 │   │   ├── 100_customers/      # 56 instances with 100 customers
 │   │   ├── 400_customers/      # 60 instances with 400 customers
 │   │   ├── 800_customers/      # 60 instances with 800 customers
-│   │   └── 1000_customers/     # 60 instances with 1000 customers
-│   ├── fleets/                 # Fleet configuration files (JSON)
-│   │   ├── C1.json             # Type C1 fleet configuration
-│   │   ├── C2.json             # Type C2 fleet configuration
-│   │   ├── R1.json             # Type R1 fleet configuration
-│   │   ├── R2.json             # Type R2 fleet configuration
-│   │   ├── RC1.json            # Type RC1 fleet configuration
-│   │   └── RC2.json            # Type RC2 fleet configuration
-│   └── raw_instances/          # Original Solomon benchmark data
+│   │   └── 1000_customers/     # 60 instances with 1000 customers (total: 236)
+│   └── fleets/                 # Fleet configuration files (JSON)
+│       ├── C1.json, C2.json    # Clustered customer distributions
+│       ├── R1.json, R2.json    # Random customer distributions
+│       └── RC1.json, RC2.json  # Mixed clustered-random distributions
 │
-├── logs/                        # Algorithm execution logs (auto-created)
-│   ├── alns_adaptive_sa/       # ALNS with SA acceptance
-│   │   ├── execution/          # Improvement trajectory logs
-│   │   └── results/            # Final solution logs
-│   ├── alns_greedy_lns/        # ALNS with greedy acceptance
-│   │   ├── execution/          # Improvement trajectory logs
-│   │   └── results/            # Final solution logs
-│   ├── ts_tenure5/             # Tabu Search (tenure 5)
-│   │   ├── execution/          # Improvement trajectory logs
-│   │   └── results/            # Final solution logs
-│   └── ts_tenure0/             # Tabu Search (tenure 0)
-│       ├── execution/          # Improvement trajectory logs
-│       └── results/            # Final solution logs
+├── logs/                       # Experiment execution logs (auto-generated)
+│   ├── alns_adaptive_sa/
+│   ├── alns_greedy_lns/
+│   ├── ts_tenure0/
+│   └── ts_tenure5/
+│       ├── execution/          # Convergence history (time, loss pairs)
+│       └── results/            # Final solutions (cost, fleet routes)
+│
+├── plots/                      # Publication-quality visualizations
+│   ├── images/                 # PNG files (300 DPI, 13 plot types)
+│   ├── PDFs/                   # Vector files (13 plot types)
+│   └── summaries/              # CSV statistics (4 summary tables)
 │
 ├── solver/
-│   ├── __init__.py
-│   ├── hffvrptw.py            # Core solver classes and imports
+│   ├── hffvrptw.py             # Core problem classes
 │   ├── metaheuristics/
-│   │   ├── __init__.py
-│   │   ├── alns.py            # ALNS implementation with operators
-│   │   └── ts.py              # Tabu Search implementation
+│   │   ├── alns.py             # ALNS implementation
+│   │   └── ts.py               # Tabu Search implementation
 │   └── problem/
-│       ├── hffvrptw_problem_instance.py  # Problem data structure
-│       ├── hffvrptw_solution.py          # Solution representation
-│       ├── hffvrptw_evaluator.py         # Objective and constraint evaluation
-│       ├── hffvrptw_initial_solution.py  # Constructive heuristic
+│       ├── hffvrptw_problem_instance.py    # Instance data structures
+│       ├── hffvrptw_solution.py            # Solution representation
+│       ├── hffvrptw_evaluator.py           # Objective + constraints
+│       ├── hffvrptw_initial_solution.py    # Constructive heuristic
 │       └── model/
-│           ├── __init__.py
-│           ├── constraints.py            # Time window and capacity constraints
-│           └── objective_function.py     # Cost calculation
+│           ├── objective_function.py       # Cost calculation
+│           └── constraints.py              # Feasibility checks
 │
 └── utils/
-    ├── __init__.py
-    ├── adj_matrix.py          # Distance matrix utilities
-    ├── capture_output.py      # Output redirection utilities
-    ├── data_loader.py         # High-level data loading
-    ├── instance_reader.py     # CSV parsing and fleet matching
-    └── results_logger.py      # Result output formatting
+    ├── data_loader.py          # Fleet JSON loader
+    ├── instance_reader.py      # CSV instance parser
+    ├── results_logger.py       # Execution logging
+    ├── adj_matrix.py           # Distance matrices
+    └── capture_output.py       # Output redirection
 ```
 
 ---
@@ -154,887 +178,616 @@ route-orchestrator/
 
 - **Python 3.10+** (tested with Python 3.14)
 - **pip** package manager
-- **Virtual environment** (recommended)
+- **Git** (for cloning the repository)
 
 ### Setup
 
-1. Clone the repository
+1. **Clone the repository**
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/code-lucasgabriel/route-orchestrator.git
 cd route-orchestrator
 ```
 
-2. Create and activate virtual environment
+2. **Create and activate virtual environment**
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
-3. Install dependencies
+3. **Install dependencies**
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**Core dependencies:**
-- `numpy` - Numerical computations
-- `np-solver` - Metaheuristic framework
-- Standard library: `multiprocessing`, `time`, `json`, `csv`
+**Dependencies:**
+
+- `pandas>=2.0.0` - Data manipulation and analysis
+- `numpy>=1.24.0` - Numerical computations
+- `matplotlib>=3.7.0` - Core plotting library
+- `seaborn>=0.12.0` - Statistical visualizations
+- `pyarrow>=12.0.0` - Parquet file support
+- `tqdm>=4.65.0` - Progress bars
+- `scipy>=1.10.0` - Scientific computing (interpolation)
 
 ---
 
-## Configuration
+## Quick Start
 
-All configuration is centralized in `settings.py`:
+### Automated Pipeline (Recommended)
 
-### Time Limit
-
-```python
-TIME_LIMIT = 600  # Solver time limit in seconds (default: 10 minutes)
-```
-
-### Instance Selection
-
-```python
-INSTANCES = [
-    "100_customers/C1_1_01.csv",
-    "400_customers/C1_4_1.csv",
-    # ... add instances to process
-]
-```
-
-### Path Configuration
-
-```python
-FLEETS_PATH = "data/fleets"
-INSTANCES_PATH = "data/instances"
-RESULTS_PATH = "data/results"
-```
-
----
-
-## Usage
-
-### Running Batch Processing
-
-Process all configured instances with both metaheuristics in parallel:
+Run the complete workflow with a single command:
 
 ```bash
-source .venv/bin/activate
-python main.py
+./run_pipeline.sh
 ```
 
-**Behavior:**
+This automated script executes all 4 steps in sequence:
+1. **Run experiments** - Executes all 236 instances × 4 algorithms (generates `logs/`)
+2. **Parse logs** - Consolidates results into analysis-ready format (generates `results.parquet`)
+3. **Generate core visualizations** - Creates TTT, Performance Profiles, Convergence, and TTQ plots (uses `plotter.py`)
+4. **Generate advanced analysis** - Creates distributions, aggregated convergence, and heatmaps (uses `analysis_suite.py`)
 
-- Processes each instance with all four solvers: `alns_adaptive_sa`, `alns_greedy_lns`, `ts_tenure5`, `ts_tenure0`
-- Uses `CPU_COUNT - 1` workers by default (configurable)
-- Automatically skips instances with existing result files
-- Creates separate log directories for each solver variant
-- Progress tracking shows `[completed/total]` with instance name and solver
+**Output**: 26 visualization files (PNG + PDF), 4 CSV summaries, and `results.parquet` dataset.
 
-**Example output:**
+**Expected Runtime**: 40-60 hours for Step 1 (experiments), ~1 minute for Steps 2-4 (parsing & plotting).
 
-```
-[1/96] Completed: C1_1_01 (alns_adaptive_sa) - Cost: 2244.29
-[2/96] Skipped: C1_1_01 (alns_greedy_lns) - results already exist
-[3/96] Completed: C1_1_01 (ts_tenure5) - Cost: 2391.49
-```
+### Manual Workflow (Step-by-Step)
 
-### Running Individual Instances
+Alternatively, run each step individually:
 
-```python
-from main import run_solver_for_instance
+```bash
+# Step 1: Run experiments (generates logs/)
+python3 main.py
 
-# Run ALNS on a single instance
-result = run_solver_for_instance(
-    instance_path="100_customers/C1_1_01.csv",
-    solver_name="alns_adaptive_sa"
-)
+# Step 2: Parse logs (generates results.parquet)
+python3 parser.py
 
-print(f"Best cost: {result['best_cost']:.2f}")
-print(f"Time found: {result['best_time']:.2f}s")
-print(f"Total time: {result['total_time']:.2f}s")
+# Step 3: Generate visualizations (generates plots/)
+python3 plotter.py
+python3 analysis_suite.py
 ```
 
-**Available solvers:**
+### Step 1: Run Experiments
 
-- `alns_adaptive_sa` - ALNS with Simulated Annealing and adaptive operator weights
-- `alns_greedy_lns` - ALNS with greedy acceptance (only improving solutions)
-- `ts_tenure5` - Tabu Search with tabu tenure of 5 iterations
-- `ts_tenure0` - Tabu Search with no tabu restrictions (greedy search)
+Execute all four algorithms on all 236 instances:
 
-### Custom Batch with Specific Instances
-
-```python
-from main import run_batch
-from settings import INSTANCES
-
-# Override INSTANCES temporarily
-import settings
-settings.INSTANCES = [
-    "100_customers/C1_1_01.csv",
-    "100_customers/C1_1_02.csv",
-]
-
-# Run with custom worker count
-run_batch(num_workers=4)
+```bash
+python3 main.py
 ```
+
+**Output**: `logs/<algorithm>/results/*.txt` and `logs/<algorithm>/execution/*.txt`
+
+**Features**:
+- Parallel processing (uses CPU cores - 1)
+- Automatic result caching (skips completed instances)
+- Real-time progress tracking
+- 600-second time limit per instance (configurable in `settings.py`)
+
+**Expected Runtime**: ~20-40 hours for all 236 instances × 4 algorithms (depends on CPU cores)
+
+### Step 2: Parse Logs
+
+Consolidate all experiment logs into analysis-ready format:
+
+```bash
+python3 parser.py
+```
+
+**Output**: `results.parquet` (944 rows × 9 columns)
+
+**Extracted Data**:
+- Algorithm, instance, category, customer size
+- Final loss, final time
+- Loss history (convergence trajectory)
+- Time history (evaluation timestamps)
+- Fleet routes (vehicle assignments)
+
+**Runtime**: ~10-15 seconds
+
+### Step 3: Generate Visualizations
+
+Create publication-quality plots:
+
+```bash
+# Core visualizations (TTT, Performance Profiles, Convergence, TTQ)
+python3 plotter.py
+
+# Advanced analysis (Distributions, Aggregation, Heatmaps)
+python3 analysis_suite.py
+```
+
+**Output**: 13 plot types (26 files: PNG + PDF) + 4 CSV summaries
+
+**Runtime**: ~20-30 seconds total
+
+---
+
+## Performance Analysis
+
+### Generated Visualizations
+
+#### Core Performance Metrics
+
+1. **Time-to-Target (TTT) Plots** (`ttt_combined_by_size.png`, `ttt_combined_by_category.png`)
+   - Step-function ECDFs showing probability of reaching best-found solution
+   - 2×2 grid by customer size (100, 400, 800, 1000)
+   - 2×3 grid by problem category (C1, C2, R1, R2, RC1, RC2)
+   - Automated label collision prevention
+   - Success rate annotations (e.g., ALNS-Greedy: 77.5%, TS: 0%)
+
+2. **Performance Profiles** (`performance_profile_combined_by_size.png`, `performance_profile_overall.png`)
+   - Dolan-Moré ratio plots (algorithm_loss / best_loss)
+   - 2×2 grid by customer size + overall plot
+   - Win rate annotations (ALNS-Greedy finds best in 77.5% of instances)
+   - Elegant leader-line annotations
+
+3. **Convergence Plots** (`convergence_<instance>.png`)
+   - Solution quality evolution over time
+   - Target benchmark from TTT (horizontal dotted line)
+   - Shaded search phases (Initial Descent, Intensive Search, Local Refinement)
+   - Explains why TS algorithms never reach target
+
+4. **Time-to-Quality (TTQ) Profiles** (`ttq_profiles.png`)
+   - Success rates at 4 target gaps: 10%, 5%, 1%, 0%
+   - Shows algorithm performance from easy to exact targets
+   - 1×4 subplot layout with shared y-axis
+   - Reveals quality threshold breakdown points
+
+#### Advanced Distributional Analysis
+
+5. **Violin Plots by Size** (`distribution_by_size.png`)
+   - Full loss distribution shapes (not just means)
+   - 2×2 grid by customer size
+   - Inner box plots show quartiles
+   - Log scale y-axis handles different magnitudes
+   - Reveals right-skewed distributions (outliers push mean higher)
+
+6. **Violin Plots by Category** (`distribution_by_category.png`)
+   - Distribution characteristics per problem type
+   - 2×3 grid by category
+   - Shows category-specific performance patterns
+   - ALNS-Greedy consistently tightest distributions
+
+#### Aggregated Temporal Analysis
+
+7. **Median Convergence by Size** (`convergence_aggregated_by_size.png`)
+   - Aggregates all 236 instances into median behavior
+   - IQR bands (25th-75th percentile, shaded regions)
+   - 2×2 grid by customer size
+   - Log-log scale reveals convergence patterns
+   - Shows TS plateau behavior explaining 0% TTT success
+
+8. **Median Convergence by Category** (`convergence_aggregated_by_category.png`)
+   - Category-specific convergence patterns
+   - 2×3 grid layout
+   - Same median + IQR approach
+   - Clear algorithm family separation
+
+#### Advanced Narrative Integration
+
+9. **Pairwise Dominance Heatmap** (`heatmap_dominance_overall.png`)
+   - 4×4 win rate matrix (row algorithm beats column algorithm)
+   - Diverging colormap centered at 50% (red = row wins, blue = column wins)
+   - Quantifies algorithm hierarchy:
+     - ALNS-Greedy: 90.5% average win rate
+     - ALNS-SA: 70.1% average win rate
+     - TS algorithms: ~9-10% average win rate
+
+#### Summary Statistics
+
+10. **CSV Reports** (`plots/summaries/`)
+    - `summary_overall.csv` - Mean, std, min, max per algorithm (236 instances each)
+    - `summary_by_size.csv` - Performance broken down by customer size
+    - `summary_by_category.csv` - Performance broken down by problem category
+    - `mean_vs_median_comparison.csv` - Quantifies distribution skew
+
+### Visual Design Principles
+
+All visualizations follow rigorous aesthetic standards:
+
+- **4-Color Distinct Palette** - Colorblind-safe (IBM certified)
+  - ALNS-SA: Dark Blue (#0072B2)
+  - ALNS-Greedy: Sky Blue (#56B4E9)
+  - TS (tenure=5): Vermillion (#D55E00)
+  - TS (tenure=0): Orange (#E69F00)
+
+- **Statistical Precision**
+  - Step-function ECDFs (not smoothed curves)
+  - IQR bands (not standard error)
+  - Log scales where appropriate
+  - Forward-fill interpolation preserves "best-so-far" nature
+
+- **Publication Quality**
+  - Vector PDF output for manuscript submission
+  - 300 DPI PNG for presentations
+  - Serif fonts (Source Serif Pro, Computer Modern)
+  - Minimal grids (y-axis only)
+  - Collision-free legends and labels
 
 ---
 
 ## Data Structure
 
-### Instance Files
+### Instance Files (CSV)
 
-CSV format with customer and depot information:
+Located in `data/instances/<size>_customers/`
 
-```csv
-CUST_NO, XCOORD, YCOORD, DEMAND, READY_TIME, DUE_DATE, SERVICE_TIME
-0,40,50,0,0,230,0
-1,45,68,10,0,70,10
+**Format:**
+```
+CUST_NO,XCOORD,YCOORD,DEMAND,READY_TIME,DUE_DATE,SERVICE_TIME
+0,40,50,0,0,1236,0          # Depot
+1,45,68,10,912,967,90        # Customer 1
+2,45,70,30,825,870,90        # Customer 2
+...
 ```
 
-- Row 0: Depot information
-- Rows 1-N: Customer information
-- Euclidean coordinates for distance
-- Time windows: `[READY_TIME, DUE_DATE]`
+**Categories:**
+- **C1, C2** - Clustered customers (tight geographical grouping)
+- **R1, R2** - Random customers (uniform distribution)
+- **RC1, RC2** - Mixed clustered-random (hybrid patterns)
 
-### Fleet Configuration Files
+**Sizes:**
+- 100 customers: 56 instances
+- 400 customers: 60 instances
+- 800 customers: 60 instances
+- 1000 customers: 60 instances
+- **Total**: 236 instances
 
-JSON format defining available vehicle types:
+### Fleet Files (JSON)
 
+Located in `data/fleets/`
+
+**Format:**
 ```json
 {
-  "fleet_name": "C1",
-  "vehicles": [
-    {
-      "type": "A",
-      "fixed_cost": 0.0,
-      "variable_cost": 1.0,
-      "capacity": 200,
-      "number_of_vehicles": 25
-    }
-  ]
+  "A": {"capacity": 200, "fixed_cost": 1000, "variable_cost": 1.0, "count": 25},
+  "B": {"capacity": 100, "fixed_cost": 800, "variable_cost": 1.2, "count": 30}
 }
 ```
 
----
+**Fleet Types:**
+- **Type A** - Large capacity, higher fixed cost, lower variable cost
+- **Type B** - Small capacity, lower fixed cost, higher variable cost
+- **Type X** (in some configs) - More expensive, outsourced extra fleet
 
-## Logging System
+### Results File (Parquet)
 
-### Log Organization
+Generated by `parser.py` at `results.parquet`
 
-Four solver variants, each with separate execution and results logs:
-
+**Schema:**
 ```
-logs/
-├── alns_adaptive_sa/       # ALNS with Simulated Annealing
-│   ├── execution/          # Improvement trajectory for each instance
-│   └── results/            # Final best solutions
-├── alns_greedy_lns/        # ALNS with greedy acceptance
-│   ├── execution/
-│   └── results/
-├── ts_tenure5/             # Tabu Search with tenure 5
-│   ├── execution/
-│   └── results/
-└── ts_tenure0/             # Tabu Search with tenure 0 (greedy)
-    ├── execution/
-    └── results/
+algorithm        (str)      # 'alns_adaptive_sa', 'alns_greedy_lns', 'ts_tenure5', 'ts_tenure0'
+instance         (str)      # 'C1_1_01', 'R2_10_5', etc.
+category         (str)      # 'C1', 'C2', 'R1', 'R2', 'RC1', 'RC2'
+cust_size        (int)      # 100, 400, 800, 1000
+final_loss       (float)    # Best objective value found
+final_time       (float)    # Time when best solution was found (seconds)
+time_history     (list)     # Timestamps of improvements
+loss_history     (list)     # Objective values at each improvement
+fleet_routes     (dict)     # Routes grouped by fleet type
 ```
 
-### Log Format
-
-**Execution Logs** (`logs/{solver}/execution/{instance}.txt`)
-
-Tracks the complete improvement trajectory with timestamps:
-
-```
-[3763.29, 0.00]
-A: [[0, 43, 42, 71, 92, 48, 51, 66, 0]]
-B: [[0, 67, 65, 41, 53, 60, 64, 68, 69, 0]]
-[2891.49, 15.32]
-A: [[0, 43, 42, 40, 44, 45, 48, 51, 0]]
-B: [[0, 67, 65, 41, 53, 60, 64, 68, 69, 0], [0, 71, 92, 48, 51, 66, 0]]
-[2384.79, 45.67]
-A: [[0, 43, 42, 40, 44, 45, 48, 51, 66, 0]]
-B: [[0, 67, 65, 41, 0], [0, 71, 92, 48, 51, 0]]
-```
-
-- First line of each block: `[cost, timestamp_seconds]`
-- Following lines: Fleet-grouped routes (e.g., `A:`, `B:`, `C:`)
-- Only shows used vehicles (excludes empty `[0, 0]` routes)
-- New block logged each time a better solution is found
-
-**Results Logs** (`logs/{solver}/results/{instance}.txt`)
-
-Stores the final best solution:
-
-```
-[2384.79, 45.67]
-A: [[0, 43, 42, 40, 44, 45, 48, 51, 66, 0]]
-B: [[0, 67, 65, 41, 0], [0, 71, 92, 48, 51, 0]]
-```
-
-- Line 1: `[best_cost, time_found_seconds]`
-- Lines 2+: Fleet-grouped routes of best solution
-
-### Parsing Logs
-
-```python
-import ast
-
-with open('logs/alns/results/C1_1_01.txt', 'r') as f:
-    best_cost, best_time = ast.literal_eval(f.readline().strip())
-    
-    fleet_routes = {}
-    for line in f:
-        fleet_type, routes = line.strip().split(': ', 1)
-        fleet_routes[fleet_type] = ast.literal_eval(routes)
-```
-
----
-
-## Performance Analysis & Plotting
-
-After running your experiments, you can generate comprehensive performance visualizations and statistical analyses.
-
-### Quick Start
-
-1. **Parse logs into efficient format:**
-   ```bash
-   python parser.py
-   ```
-   Creates `results.parquet` with all experimental data in analysis-ready format.
-
-2. **Generate plots:**
-   ```bash
-   python plotter.py
-   ```
-   Creates `plots/` directory with TTT plots, performance profiles, and convergence curves.
-
-### Generated Visualizations
-
-**Time-To-Target (TTT) Plots:**
-- `ttt_<category>_<size>.png` - Probability of reaching target solution over time
-- One plot per category/size combination (24 plots total)
-- Shows which algorithm converges fastest to high-quality solutions
-
-**Performance Profiles:**
-- `performance_profile.png` - Overall algorithm comparison (all 236 instances)
-- `performance_profile_<size>.png` - By customer size (4 plots)
-- `performance_profile_<category>.png` - By problem category (6 plots)
-- Shows solution quality consistency across diverse instances
-
-**Convergence Examples:**
-- `convergence_<instance>.png` - Objective value evolution over time
-- Generated for sample instances to show detailed algorithm behavior
-
-**Summary Statistics:**
-- `summary_overall.csv` - Mean, std, min, max per algorithm
-- `summary_by_size.csv` - Performance by customer size
-- `summary_by_category.csv` - Performance by problem category
-
-### Data Schema
-
-The parsed `results.parquet` file uses an efficient columnar format:
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `algorithm` | str | `alns_adaptive_sa`, `alns_greedy_lns`, `ts_tenure5`, `ts_tenure0` |
-| `instance` | str | Instance name (e.g., `C1_1_01`) |
-| `category` | str | `C1`, `C2`, `R1`, `R2`, `RC1`, `RC2` |
-| `cust_size` | int | 100, 400, 800, or 1000 |
-| `final_loss` | float | Best objective value found |
-| `final_time` | float | Time when best solution was found (seconds) |
-| `loss_history` | np.array | Convergence trajectory (all improvements) |
-| `time_history` | np.array | Timestamps for each improvement |
-| `final_solution` | dict | Fleet routes `{'A': [[...]], 'B': [[...]]}` |
-
-### Custom Analysis
-
-Load the data for statistical analysis:
-
-```python
-import pandas as pd
-import numpy as np
-
-df = pd.read_parquet('results.parquet')
-
-# Average solution quality by algorithm
-avg_by_alg = df.groupby('algorithm')['final_loss'].mean()
-print(avg_by_alg)
-
-# Best algorithm per instance
-best_per_instance = df.loc[df.groupby('instance')['final_loss'].idxmin()]
-win_counts = best_per_instance['algorithm'].value_counts()
-print(win_counts)
-
-# Statistical tests
-from scipy.stats import wilcoxon
-alns = df[df['algorithm'] == 'alns_adaptive_sa'].sort_values('instance')
-ts = df[df['algorithm'] == 'ts_tenure5'].sort_values('instance')
-stat, pval = wilcoxon(alns['final_loss'], ts['final_loss'])
-print(f"Wilcoxon test p-value: {pval}")
-```
-
-For detailed documentation, see **[PLOTTING_README.md](PLOTTING_README.md)**.
-
----
-
-## Parallel Processing
-
-### Architecture
-
-Route Orchestrator uses Python's `multiprocessing` module with process-safe state management:
-
-```python
-# Spawn method ensures clean process state
-multiprocessing.set_start_method('spawn', force=True)
-
-num_workers = multiprocessing.cpu_count() - 1
-
-# Module-level wrapper for pickling compatibility
-def _process_task_wrapper(task):
-    instance_path, solver_name = task
-    return run_solver_for_instance(instance_path, solver_name)
-
-with multiprocessing.Pool(processes=num_workers) as pool:
-    for result in pool.imap_unordered(_process_task_wrapper, all_tasks):
-        # Process results as they complete
-        results_summary.append(result)
-```
-
-**Key implementation details:**
-
-- **Spawn method** - Ensures clean process state (critical for solver instances)
-- **Method binding preservation** - Proper handling of bound methods in monkey-patching
-- **Module-level wrappers** - Required for pickling tasks across processes
-- **Unordered execution** - Results processed as they complete for better progress tracking
-
-### Task Distribution
-
-Each instance generates 4 tasks (one per solver variant):
-
-```
-24 instances × 4 solvers = 96 total tasks
-
-Example task distribution (8-core system, 7 workers):
-- Worker 1: C1_1_01 + alns_adaptive_sa
-- Worker 2: C1_1_01 + alns_greedy_lns  
-- Worker 3: C1_1_01 + ts_tenure5
-- Worker 4: C1_1_01 + ts_tenure0
-- Worker 5: C1_1_02 + alns_adaptive_sa
-- Worker 6: C1_1_02 + alns_greedy_lns
-- Worker 7: C1_1_02 + ts_tenure5
-... (tasks redistributed as workers complete)
-```
-
-### Performance Characteristics
-
-**8-core system example:**
-
-- 24 instances × 4 solvers = 96 tasks
-- 7 parallel workers
-- ~600s per task (10-minute time limit)
-- Total wall time: ~96 / 7 × 600s ≈ 137 minutes
-- Speedup: ~7x compared to sequential execution
-
----
-
-## Solver Configuration
-
-### ALNS Configuration
-
-Located in `solver/metaheuristics/alns.py`:
-
-**Model 1: Adaptive SA (alns_adaptive_sa)**
-
-```python
-alns_adaptive_sa = ALNS(
-    destroy_operators=[
-        RandomDestroy(num_to_remove=5),
-        RandomDestroy(num_to_remove=10),
-        RouteDestroy(),
-        ShawDestroy(num_to_remove=8, determinism_param=4),
-        WorstDestroy(num_to_remove=6, determinism_param=3)
-    ],
-    repair_operators=[
-        GreedyRepair(),
-        RegretRepair(k_regret=3),
-        RegretRepair(k_regret=5)
-    ],
-    weight_manager=RouletteWheelManager(
-        segment_size=100,
-        decay=0.8,
-        reward_points={
-            "new_best": 10,
-            "better_than_current": 5,
-            "accepted": 2,
-            "rejected": 0
-        }
-    ),
-    acceptance_criteria=SimulatedAnnealingAcceptance(
-        initial_temp=5000,
-        cooling_rate=0.998,
-        min_temp=0.1
-    ),
-    time_limit=TIME_LIMIT,  # 600 seconds
-    max_iterations=10000
-)
-```
-
-**Model 2: Greedy LNS (alns_greedy_lns)**
-
-```python
-alns_greedy_lns = ALNS(
-    destroy_operators=[RandomDestroy(num_to_remove=8)],
-    repair_operators=[GreedyRepair()],
-    weight_manager=RouletteWheelManager(
-        segment_size=1, 
-        decay=1.0  # No decay
-    ),
-    acceptance_criteria=SimulatedAnnealingAcceptance(
-        initial_temp=0,    # Only accept improving solutions
-        cooling_rate=1.0, 
-        min_temp=0
-    ),
-    time_limit=TIME_LIMIT,
-    max_iterations=10000
-)
-```
-
-### Tabu Search Configuration
-
-Located in `solver/metaheuristics/ts.py`:
-
-**Model 1: Tenure 5 (ts_tenure5)**
-
-```python
-ts_tenure5 = TabuSearch(
-    tenure=5,
-    neighborhood_strategy=HFFVRPTW_TSNeighborhood(),
-    time_limit=TIME_LIMIT
-)
-```
-
-**Model 2: Tenure 0 (ts_tenure0)**
-
-```python
-ts_tenure0 = TabuSearch(
-    tenure=0,  # No tabu restrictions (greedy)
-    neighborhood_strategy=HFFVRPTW_TSNeighborhood(),
-    time_limit=TIME_LIMIT
-)
-```
-
-**Neighborhood moves:**
-
-- `swap` - Exchange two customer positions within routes
-- `relocate` - Move customer to different position
-- `insert` - Add unvisited customer to route  
-- `exchange` - Swap visited ↔ unvisited customers
-- `insert_use` - Activate unused vehicle for diversification
-
----
-
-## Advanced Usage
-
-### Testing and Validation
-
-The project includes comprehensive test suites:
-
-```bash
-# Run full validation suite
-source .venv/bin/activate
-python3.14 test_corrections.py
-
-# Run single instance test
-python3.14 test_single_run.py
-```
-
-**Test coverage:**
-
-- GreedyRepair operator correctness
-- RegretRepair operator correctness  
-- Multiprocessing state preservation
-- End-to-end solver execution
-
-### Analyzing Solution Quality
-
-```python
-import os
-import ast
-from collections import defaultdict
-
-def analyze_results(solver='alns_adaptive_sa'):
-    """Aggregate results by instance type"""
-    results_dir = f'logs/{solver}/results'
-    costs = defaultdict(list)
-    
-    for filename in os.listdir(results_dir):
-        if filename.endswith('.txt'):
-            filepath = os.path.join(results_dir, filename)
-            with open(filepath) as f:
-                cost, _ = ast.literal_eval(f.readline().strip())
-                instance_type = filename.split('_')[0]  # C1, R1, RC1, etc.
-                costs[instance_type].append(cost)
-    
-    for instance_type, cost_list in sorted(costs.items()):
-        avg = sum(cost_list) / len(cost_list)
-        min_cost = min(cost_list)
-        max_cost = max(cost_list)
-        print(f"{instance_type}: avg={avg:.2f}, min={min_cost:.2f}, max={max_cost:.2f} (n={len(cost_list)})")
-
-# Usage
-analyze_results('alns_adaptive_sa')
-analyze_results('alns_greedy_lns')
-```
-
-### Comparing Solver Performance
-
-```python
-def compare_solvers(instance_name):
-    """Compare all four solvers on a single instance"""
-    solvers = ['alns_adaptive_sa', 'alns_greedy_lns', 'ts_tenure5', 'ts_tenure0']
-    results = {}
-    
-    for solver in solvers:
-        filepath = f'logs/{solver}/results/{instance_name}.txt'
-        with open(filepath) as f:
-            cost, time = ast.literal_eval(f.readline().strip())
-            results[solver] = {'cost': cost, 'time': time}
-    
-    print(f"\nInstance: {instance_name}\n")
-    for solver, data in sorted(results.items(), key=lambda x: x[1]['cost']):
-        print(f"{solver:20s}: cost={data['cost']:8.2f}, found_at={data['time']:6.2f}s")
-    
-    best_solver = min(results.items(), key=lambda x: x[1]['cost'])
-    print(f"\nBest: {best_solver[0]} with cost {best_solver[1]['cost']:.2f}")
-
-# Usage
-compare_solvers('C1_1_01')
-```
-
-### Tracking Solution Evolution
-
-```python
-def plot_convergence(instance_name, solver):
-    """Extract and plot improvement trajectory"""
-    import matplotlib.pyplot as plt
-    
-    filepath = f'logs/{solver}/execution/{instance_name}.txt'
-    
-    costs = []
-    times = []
-    
-    with open(filepath) as f:
-        for line in f:
-            if line.startswith('['):
-                cost, time = ast.literal_eval(line.strip())
-                costs.append(cost)
-                times.append(time)
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(times, costs, marker='o', linestyle='-', linewidth=2)
-    plt.xlabel('Time (seconds)')
-    plt.ylabel('Solution Cost')
-    plt.title(f'{instance_name} - {solver}\nConvergence Trajectory')
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.savefig(f'convergence_{solver}_{instance_name}.png', dpi=300)
-    plt.show()
-
-# Usage
-plot_convergence('C1_1_01', 'alns_adaptive_sa')
-```
-
-### Custom ALNS Configuration
-
-```python
-from solver.metaheuristics.alns import (
-    ALNS, RandomDestroy, ShawDestroy, GreedyRepair, RegretRepair,
-    RouletteWheelManager, SimulatedAnnealingAcceptance
-)
-from settings import TIME_LIMIT
-
-# Create custom ALNS variant
-custom_alns = ALNS(
-    destroy_operators=[
-        RandomDestroy(num_to_remove=15),  # More aggressive removal
-        ShawDestroy(num_to_remove=12, determinism_param=2),  # More random
-    ],
-    repair_operators=[
-        RegretRepair(k_regret=4),  # Different regret level
-    ],
-    weight_manager=RouletteWheelManager(
-        segment_size=50,   # Faster adaptation
-        decay=0.9,         # Higher decay
-        reward_points={
-            "new_best": 15,
-            "better_than_current": 7,
-            "accepted": 3,
-            "rejected": 0
-        }
-    ),
-    acceptance_criteria=SimulatedAnnealingAcceptance(
-        initial_temp=10000,  # Higher initial temperature
-        cooling_rate=0.995,   # Slower cooling
-        min_temp=0.01
-    ),
-    time_limit=TIME_LIMIT,
-    max_iterations=10000
-)
-
-# Use in run_solver_for_instance
-result = run_solver_for_instance(
-    instance_path="100_customers/C1_1_01.csv",
-    solver_name="custom_alns"  # Will need to add to solver_name mapping
-)
-```
-
----
-
-## Technical Implementation Notes
-
-### Critical Corrections Implemented
-
-The codebase includes several important correctness fixes:
-
-**1. Repair Operator Logic**
-
-Both `GreedyRepair` and `RegretRepair` now correctly evaluate **all** move types (`insert` and `insert_use`) before making decisions, rather than arbitrarily prioritizing existing routes. This ensures optimal moves are selected based on actual cost, not move type.
-
-**2. Multiprocessing State Management**
-
-The `main.py` monkey-patching preserves bound methods correctly to avoid `TypeError` in subsequent worker tasks. This ensures stable parallel execution across all worker processes.
-
-**3. Operator Selection Strategy**
-
-ALNS operators now properly compare opening new routes versus inserting into existing routes, leading to better solution quality through more informed decisions.
-
-See `CORREÇÕES_IMPLEMENTADAS.md` for detailed technical documentation.
+**Dimensions**: 944 rows (4 algorithms × 236 instances) × 9 columns
 
 ---
 
 ## Algorithm Details
 
-### ALNS Destroy Operators
+### ALNS Implementation
 
-**1. RandomDestroy(num_to_remove)**
-
-Randomly selects and removes `num_to_remove` customers from the solution.
-
-- Simple diversification mechanism
-- Used with both 5 and 10 customers in `alns_adaptive_sa`
-- Fast execution, good for exploration
-
-**2. RouteDestroy()**
-
-Selects one active route randomly and removes all its customers.
-
-- Preserves spatial structure within removed customers
-- Good for route-level reorganization
-- Balances solution exploration
-
-**3. ShawDestroy(num_to_remove, determinism_param)**
-
-Removes customers based on **relatedness** (Shaw, 1998):
-
+**Operator Selection** (Adaptive Roulette Wheel):
 ```python
-relatedness = weight_distance × norm_distance + 
-              weight_time × (1 - norm_time_overlap)
+weights = {operator: π_i}  # Updated dynamically
+probability = w_i / Σw_j
+selected_op = roulette_wheel(probabilities)
 ```
 
-- Selects seed customer randomly
-- Iteratively removes most related customers
-- `determinism_param` controls greediness (higher = more deterministic)
-- Effective for customers with similar time windows or locations
-
-**4. WorstDestroy(num_to_remove, determinism_param)**
-
-Removes customers that contribute most to solution cost:
-
+**Weight Update** (after each iteration):
 ```python
-removal_cost = distance(prev, customer) + distance(customer, next) 
-               - distance(prev, next)
+if new_global_best:
+    w_i = w_i + σ_1  # Large reward
+elif new_solution_accepted:
+    w_i = w_i + σ_2  # Medium reward
+elif better_than_current:
+    w_i = w_i + σ_3  # Small reward
 ```
 
-- Targets "expensive" routing decisions
-- Greedy improvement potential
-- `determinism_param` controls selection randomness
-
-### ALNS Repair Operators
-
-**1. GreedyRepair()**
-
-Inserts each unvisited customer at its cheapest feasible position:
-
-- Evaluates **both** `insert` (existing routes) and `insert_use` (new routes)
-- Selects move with lowest cost (important fix: no arbitrary prioritization)
-- Fast, effective baseline repair strategy
-
-**2. RegretRepair(k_regret)**
-
-Inserts customers based on **regret** value:
-
+**Simulated Annealing Acceptance**:
 ```python
-regret = sum(cost[i] - cost[0] for i in range(1, k_regret))
+Δ = new_cost - current_cost
+if Δ < 0 or random() < exp(-Δ / T):
+    accept_solution()
+T = T * cooling_rate  # Exponential cooling
 ```
 
-- Prioritizes customers with few good insertion options
-- `k_regret=3` uses difference between best and 3rd-best positions
-- `k_regret=5` uses more positions for higher discrimination
-- Leads to better global solutions by avoiding "easy" greedy choices
+**Destroy/Repair Flow**:
+1. Select destroy operator (roulette wheel)
+2. Remove k customers (5-10 depending on operator)
+3. Select repair operator (roulette wheel)
+4. Insert removed customers (greedy or regret-based)
+5. Evaluate new solution
+6. Accept/reject (SA or greedy)
+7. Update operator weights
 
-### Tabu Search Neighborhood
+### Tabu Search Implementation
 
-**Intensification Moves:**
+**Move Evaluation** (Delta Cost):
+```python
+# Only evaluate feasible moves
+for move in generate_neighbors():
+    if not is_tabu(move) or is_aspiration(move):
+        delta_cost = evaluate_delta(move)
+        if delta_cost < best_delta:
+            best_move = move
+```
 
-- **Swap**: Exchange positions of two customers in routes
-- **Relocate**: Move customer to different position (same or different route)
+**Tabu List Management**:
+```python
+tabu_list = deque(maxlen=tenure)  # FIFO queue
+tabu_list.append((customer, old_position, new_position))
+```
 
-**Diversification Moves:**
+**Neighborhood Structure**:
+- **Swap**: O(n²) - All pairwise customer exchanges
+- **Relocate**: O(n²) - Move each customer to all positions
+- **Insert**: O(n × m) - Insert unvisited into routes
+- **Exchange**: O(n × m) - Swap visited ↔ unvisited
+- **Insert-use**: O(m) - Activate unused vehicles (diversification)
 
-- **Insert**: Add unvisited customer to an existing route
-- **Exchange**: Swap a visited customer with an unvisited one
-- **Insert-use**: Place customer in an unused vehicle (activates new route)
+---
 
-**Delta Evaluation:**
+## Benchmark Results
 
-Fast cost estimation without full solution re-evaluation:
+### Overall Performance (236 Instances)
+
+| Algorithm | Median Loss | Mean Loss | Std Loss | Min Loss | Max Loss | Avg Time (s) |
+|-----------|-------------|-----------|----------|----------|----------|--------------|
+| **ALNS-Greedy** | **63,871.90** | **95,282.69** | 83,664.69 | 1,086.32 | 299,352.04 | 527.25 |
+| ALNS-SA | 89,597.50 | 109,357.86 | 95,482.11 | 1,198.36 | 325,493.33 | 507.78 |
+| TS (tenure=0) | 111,890.10 | 129,381.38 | 110,586.21 | 1,192.92 | 358,469.51 | 557.35 |
+| TS (tenure=5) | 111,890.10 | 129,405.11 | 110,592.60 | 1,192.92 | 358,469.51 | 554.18 |
+
+### Key Findings
+
+**Algorithm Hierarchy (Based on Dominance Heatmap):**
+1.  **ALNS-Greedy**: Dominant performer. Beats ALNS-SA in **76.7%** of instances and TS in **96.6%**.
+2.  **ALNS-SA**: Strong second. Beats TS in **93.6%** of instances.
+3.  **TS (tenure=0/5)**: Significantly inferior, with **~8-10%** win rates vs. ALNS.
+
+**Time-to-Target (Finding Best-Known Solution):**
+* **ALNS-Greedy**: **76.3%** success rate.
+* **ALNS-SA**: **21.8%** success rate.
+* **TS (tenure=0/5)**: **1.1%** success rate.
+
+**Time-to-Quality (Finding Near-Optimal Solutions):**
+* **10% Gap (Easy)**: **ALNS-Greedy (93.4%)** and **ALNS-SA (85.8%)** excel. TS already struggles (15-18%).
+* **5% Gap**: ALNS-Greedy (93.4%) remains strong; ALNS-SA drops to 58.1%. TS falls to ~7-10%.
+* **1% Gap (Hard)**: **ALNS-Greedy (81.7%)** is the only robust algorithm. ALNS-SA (27.7%) and TS (~1-3%) fail.
+
+**Distribution Characteristics (Violin Plots):**
+* ALNS algorithms achieve better (lower) median losses.
+* Their distributions are right-skewed (long upper tail), indicating highly consistent performance with a few poor-quality outliers.
+
+**Performance by Instance Size:**
+* **100 Customers**: All algorithms perform comparably.
+* **400-1000 Customers**: A significant gap emerges. ALNS algorithms consistently find better solutions, while TS algorithms stabilize at much worse (higher) objective values.
+
+**Performance by Category:**
+* **Pattern**: ALNS dominance is consistent across *all* problem categories (C1, C2, R1, R2, RC1, RC2).
+* **Difficulty**: **C2** appears to be the easiest category (lowest losses), while **R2** and **RC2** are among the most difficult (highest losses).
+
+**Convergence Behavior:**
+* **ALNS-Greedy (light blue)**: Fastest and deepest convergence to the best solutions.
+* **ALNS-SA (dark blue)**: Steady convergence to a high-quality solution, slightly worse than Greedy.
+* **TS (orange/brown)**: **Plateaus very early** (10-50 seconds) at a poor objective value, explaining its low success rates.
+
+---
+
+## Advanced Usage
+
+### Single Instance Execution
 
 ```python
-delta_cost = new_cost - old_cost
-if delta_cost < 0 or not is_tabu:
-    apply_move()
+from solver.hffvrptw import HFFVRPTWProblem, HFFVRPTWEvaluator, HFFVRPTWConstructiveHeuristic
+from solver.metaheuristics.alns import alns_greedy_lns
+
+# Load instance
+problem = HFFVRPTWProblem()
+problem.read_instance("data/instances/100_customers/C1_1_01.csv")
+
+# Create evaluator
+evaluator = HFFVRPTWEvaluator(problem)
+
+# Generate initial solution
+constructor = HFFVRPTWConstructiveHeuristic(problem, evaluator)
+initial_sol = constructor.build()
+
+# Run ALNS
+best_sol, best_cost = alns_greedy_lns(initial_sol, evaluator, problem, time_limit=600)
+
+print(f"Best cost: {best_cost}")
+print(f"Routes: {best_sol}")
+```
+
+### Custom Instance Selection
+
+Edit `settings.py`:
+
+```python
+# Run only 100-customer instances
+INSTANCES = [f"100_customers/{f}" for f in os.listdir("data/instances/100_customers")]
+
+# Run specific instances
+INSTANCES = [
+    "100_customers/C1_1_01.csv",
+    "100_customers/R1_1_01.csv",
+    "400_customers/C1_4_1.csv"
+]
+```
+
+### Custom Time Limit
+
+Edit `settings.py`:
+
+```python
+TIME_LIMIT = 300  # 5 minutes per instance
+# TIME_LIMIT = 1200  # 20 minutes per instance
+```
+
+### Parallel Processing Configuration
+
+```python
+# In main.py
+run_batch(num_workers=4)  # Use 4 cores
+run_batch(num_workers=None)  # Use CPU cores - 1 (default)
+```
+
+### Regenerate Specific Plots
+
+```python
+# In plotter.py or analysis_suite.py, comment out unwanted functions:
+
+# Skip TTT plots
+# generate_ttt_plots(df, output_dir)
+
+# Only generate heatmap
+generate_pairwise_dominance_heatmap(df)
+```
+
+### Custom Plotting
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load parsed results
+df = pd.read_parquet('results.parquet')
+
+# Custom analysis
+custom_subset = df[df['cust_size'] == 100]
+custom_subset.groupby('algorithm')['final_loss'].mean()
+
+# Custom plot
+plt.figure(figsize=(10, 6))
+for alg in df['algorithm'].unique():
+    data = df[df['algorithm'] == alg]['final_loss']
+    plt.hist(data, alpha=0.5, label=alg, bins=30)
+plt.legend()
+plt.xlabel('Final Loss')
+plt.ylabel('Frequency')
+plt.title('Loss Distribution by Algorithm')
+plt.savefig('custom_plot.png', dpi=300)
 ```
 
 ---
 
-## Performance
+## Configuration Reference
 
-### Benchmark Results
+### `settings.py`
 
-Tested on Solomon HFFVRPTW instances (100-1000 customers):
+```python
+# Paths
+FLEETS_PATH = "data/fleets"
+INSTANCES_PATH = "data/instances"
 
-**Typical improvements from initial solution:**
+# Solver
+TIME_LIMIT = 600  # seconds
 
-- **alns_adaptive_sa**: 35-45% cost reduction
-- **alns_greedy_lns**: 40-50% cost reduction  
-- **ts_tenure5**: 30-40% cost reduction
-- **ts_tenure0**: 35-45% cost reduction
+# Instances (auto-generated list of all 236 instances)
+INSTANCES = [...]  # Loaded from data/instances/
+```
 
-**Convergence patterns:**
+### `parser.py`
 
-- Most improvements occur in first 2-3 minutes
-- Diminishing returns after 5 minutes
-- 10-minute time limit provides good balance
+```python
+LOGS_ROOT_DIR = 'logs'
+OUTPUT_FILE = 'results.parquet'
 
-### Scalability
+# Instance name regex: <category>_<size>_<id>
+INSTANCE_REGEX = r"^(R1|R2|C1|C2|RC1|RC2)_(\d+)_(.*)$"
 
-**Instance size vs execution time:**
+# Size mapping
+SCALE_TO_SIZE = {'1': 100, '4': 400, '8': 800, '10': 1000}
+```
 
-- **100 customers**: Reaches time limit, continues improving
-- **400 customers**: Reaches time limit, solution quality varies
-- **800 customers**: Reaches time limit, harder to find improvements
-- **1000 customers**: Reaches time limit, mostly local search
+### `plotter.py` & `analysis_suite.py`
 
-**Resource usage:**
+```python
+DATA_FILE = 'results.parquet'
+OUTPUT_DIR = 'plots'
+IMAGES_DIR = 'plots/images'
+PDFS_DIR = 'plots/PDFs'
+SUMMARIES_DIR = 'plots/summaries'
 
-- Memory: ~50-100 MB per solver instance
-- CPU: Scales linearly with number of workers
-- Disk: ~10-50 KB per instance (log files)
+# 4-Color Palette (Colorblind-Safe)
+PALETTE_V7 = {
+    'ALNS-SA': '#0072B2',        # Dark Blue
+    'ALNS-Greedy': '#56B4E9',    # Sky Blue
+    'TS (tenure=5)': '#D55E00',  # Vermillion
+    'TS (tenure=0)': '#E69F00'   # Orange
+}
+```
 
-### Solver Comparison
+---
 
-**ALNS Adaptive SA vs Greedy LNS:**
+## Troubleshooting
 
-- Adaptive SA explores more diverse solutions (accepts worse solutions)
-- Greedy LNS converges faster but may get stuck in local optima
-- Adaptive SA generally finds better solutions given sufficient time
+### Issue: "File 'results.parquet' not found"
+**Solution**: Run `python3 parser.py` to generate the data file from logs.
 
-**Tabu Search Tenure 5 vs Tenure 0:**
+### Issue: "No log files found"
+**Solution**: Run `python3 main.py` to generate experiment logs.
 
-- Tenure 5 avoids cycling, more thorough exploration
-- Tenure 0 is pure greedy search, faster convergence
-- Tenure 5 typically outperforms on complex instances
+### Issue: "scipy module not found"
+**Solution**: Install scipy: `pip install scipy>=1.10.0`
+
+### Issue: Plots look different from expected
+**Check**:
+- Verify all 944 records loaded from results.parquet
+- Ensure you're using the correct palette (automatic in scripts)
+- Check that plots/ directory has write permissions
+
+### Issue: Experiments taking too long
+**Solutions**:
+- Reduce `TIME_LIMIT` in `settings.py` (e.g., 300 seconds)
+- Reduce instance count in `INSTANCES` list
+- Increase `num_workers` in `run_batch()` call
+
+---
+
+## Citation
+
+If you use this code in your research, please cite:
+
+```bibtex
+@software{route_orchestrator,
+  title = {Route Orchestrator: HFFVRPTW Optimization Suite},
+  author = {Golfeto, Pietro Grazzioli and Monteiro da Costa, Lucas Gabriel},
+  year = {2025},
+  url = {https://github.com/code-lucasgabriel/route-orchestrator}
+}
+```
 
 ---
 
 ## License
 
-MIT License - see LICENSE file for details.
-
----
-
-## References
-
-### Benchmark Instances
-
-- **Solomon VRPTW benchmarks** - Original problem set adapted for heterogeneous fleets
-- Instance types: C (clustered), R (random), RC (random-clustered)
-- Sizes: 100, 400, 800, 1000 customers
-
-### Algorithm References
-
-**ALNS:**
-
-- Ropke, S., & Pisinger, D. (2006). "An Adaptive Large Neighborhood Search Heuristic for the Pickup and Delivery Problem with Time Windows." Transportation Science, 40(4), 455-472.
-- Shaw, P. (1998). "Using Constraint Programming and Local Search Methods to Solve Vehicle Routing Problems." CP-98, 417-431.
-
-**Tabu Search:**
-
-- Glover, F. (1989). "Tabu Search - Part I." ORSA Journal on Computing, 1(3), 190-206.
-- Cordeau, J.-F., Laporte, G., & Mercier, A. (2001). "A Unified Tabu Search Heuristic for Vehicle Routing Problems with Time Windows." Journal of the Operational Research Society, 52(8), 928-936.
-
-### Framework
-
-- **np-solver** - Python metaheuristic optimization framework
-
----
-
-## Contributing
-
-Contributions are welcome! Please follow these guidelines:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes with clear commit messages
-4. Add tests for new functionality
-5. Ensure all tests pass (`python test_corrections.py`)
-6. Submit a pull request
-
-**Areas for contribution:**
-
-- Additional destroy/repair operators
-- New metaheuristic variants
-- Performance optimizations
-- Enhanced visualization tools
-- Documentation improvements
-
----
-
-## Contact
-
-For questions, issues, or contributions:
-
-- **Repository**: [route-orchestrator](https://github.com/code-lucasgabriel/route-orchestrator)
-- **Issues**: Use GitHub Issues for bug reports and feature requests
-- **Discussions**: Use GitHub Discussions for questions and ideas
+This project is licensed under the MIT License.
 
 ---
 
 ## Acknowledgments
 
-- Solomon benchmark instances for standardized VRPTW testing
-- np-solver framework for metaheuristic implementations
-- Research community for ALNS and Tabu Search algorithms
-- Contributors and testers
+- **Solomon Benchmark Instances** - Problem instance format
+- **IBM Colorblind-Safe Palette** - Visualization color scheme
+- **Dolan-Moré Performance Profiles** - Comparative analysis methodology
 
 ---
 
-**Last Updated:** November 2025  
-**Version:** 2.0.0  
-**Python Version:** 3.10+ (tested with 3.14)
+**Last Updated**: November 12, 2025  
+**Version**: 1.0  
+**Python**: 3.10+  
+**Status**: Production-ready
