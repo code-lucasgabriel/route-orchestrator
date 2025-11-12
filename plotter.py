@@ -101,8 +101,14 @@ def compute_all_time_to_target(df: pd.DataFrame) -> pd.DataFrame:
     """
     Pre-computes the Time-to-Target (TTT) for all runs
     against the "best-found" solution for that instance.
+    
+    Also computes Time-to-Quality (TTQ) for multiple target gaps:
+    - 10% gap: target * 1.10
+    - 5% gap: target * 1.05
+    - 1% gap: target * 1.01
+    - 0% gap: target * 1.00 (exact target)
     """
-    print("\n  Preprocessing for Time-to-Target...")
+    print("\n  Preprocessing for Time-to-Target and Time-to-Quality...")
     
     # 1. Find the best-found target (minimum) for each instance
     instance_targets = df.groupby('instance')['final_loss'].min().to_dict()
@@ -122,8 +128,24 @@ def compute_all_time_to_target(df: pd.DataFrame) -> pd.DataFrame:
             # If target was never reached, return Infinity
             return np.inf
     
-    # 4. Apply this function to all rows
+    # 3b. Define a function to find TTQ for multiple gaps
+    def find_ttq(row, gap_multiplier):
+        target = row['target_loss'] * gap_multiplier
+        # Find first index where loss <= target
+        indices = np.where(row['loss_history'] <= target)[0]
+        
+        if len(indices) > 0:
+            return row['time_history'][indices[0]]
+        else:
+            # If target was never reached, return Infinity
+            return np.inf
+    
+    # 4. Apply this function to all rows for different gaps
     df['time_to_target'] = df.apply(find_ttt, axis=1)
+    df['ttt_10_gap'] = df.apply(lambda row: find_ttq(row, 1.10), axis=1)
+    df['ttt_05_gap'] = df.apply(lambda row: find_ttq(row, 1.05), axis=1)
+    df['ttt_01_gap'] = df.apply(lambda row: find_ttq(row, 1.01), axis=1)
+    df['ttt_00_gap'] = df.apply(find_ttt, axis=1)  # Same as time_to_target
     
     # Map to clean labels for the plot legend
     df['Algorithm'] = df['algorithm'].map(ALGORITHM_LABELS)
@@ -547,6 +569,144 @@ def generate_ttt_plots(df: pd.DataFrame, output_dir: Path):
     print(f"  ✓ Saved: {filename_cat} (and .pdf)")
 
 
+def generate_ttq_plots(df: pd.DataFrame, output_dir: Path):
+    """
+    Generates Time-to-Quality (TTQ) profiles across multiple target gaps.
+    Shows how quickly algorithms reach different quality thresholds.
+    
+    Target gaps:
+    - 10% gap: target * 1.10 (easier)
+    - 5% gap: target * 1.05 (moderate)
+    - 1% gap: target * 1.01 (harder)
+    - 0% gap: target * 1.00 (exact best-found)
+    """
+    if 'ttt_10_gap' not in df.columns:
+        df = compute_all_time_to_target(df)
+    
+    print("\n" + "="*80)
+    print("GENERATING TIME-TO-QUALITY (TTQ) PROFILES")
+    print("="*80)
+    
+    # Define gap levels and corresponding column names
+    gaps = [
+        ('10% Gap\n(Target × 1.10)', 'ttt_10_gap'),
+        ('5% Gap\n(Target × 1.05)', 'ttt_05_gap'),
+        ('1% Gap\n(Target × 1.01)', 'ttt_01_gap'),
+        ('0% Gap\n(Exact Target)', 'ttt_00_gap')
+    ]
+    
+    # Create figure with 4 subplots (1x4)
+    fig, axes = plt.subplots(1, 4, figsize=(20, 6), sharey=True)
+    
+    max_finite_time = df[df['time_to_target'] != np.inf]['time_to_target'].max()
+    if pd.isna(max_finite_time):
+        max_finite_time = 600
+    
+    # Loop through each gap level
+    for i, (title, col_name) in enumerate(gaps):
+        ax = axes[i]
+        
+        # Set xlim BEFORE the loop
+        ax.set_xlim(0.1, max_finite_time * 2)
+        
+        # V7: Label collision prevention
+        y_offsets = defaultdict(lambda: 0.0)
+        y_padding = 0.03
+        
+        for alg in sorted(df['algorithm'].unique()):
+            alg_data = df[df['algorithm'] == alg][col_name].values
+            
+            # Compute ECDF
+            alg_data_sorted = np.sort(alg_data)
+            n = len(alg_data_sorted)
+            
+            if n > 0:
+                probabilities = np.arange(1, n + 1) / n
+                
+                # Separate finite from infinite values
+                finite_mask = alg_data_sorted != np.inf
+                x_plot = alg_data_sorted[finite_mask]
+                y_plot = probabilities[finite_mask]
+                
+                alg_label = ALGORITHM_LABELS[alg]
+                plot_color = PALETTE_V7[alg_label]
+                
+                if len(x_plot) > 0:
+                    # Case 1: >0% success. Plot as step-function ECDF.
+                    ax.plot(x_plot, y_plot,
+                           label=alg_label,
+                           color=plot_color,
+                           linestyle='-',
+                           linewidth=2.5, alpha=0.9,
+                           drawstyle='steps-post')
+                    
+                    # Annotate final success rate with collision prevention
+                    final_rate = y_plot[-1]
+                    final_time = x_plot[-1]
+                    
+                    y_key = round(final_rate, 2)
+                    y_offset = y_offsets[y_key]
+                    y_final = final_rate + y_offset
+                    y_offsets[y_key] += y_padding
+                    
+                    ax.text(final_time * 1.1, y_final, f'{final_rate:.1%}', 
+                            color=plot_color, fontsize=9, 
+                            va='center', ha='left')
+                
+                elif n > 0:
+                    # Case 2: 0% success. Plot flat line at y=0.
+                    plot_xlim = ax.get_xlim()
+                    ax.plot(plot_xlim, [0.0, 0.0],
+                           label=alg_label,
+                           color=plot_color,
+                           linestyle='-',
+                           linewidth=2.5, alpha=0.9)
+                    
+                    # Annotate with collision prevention
+                    plot_xmax = plot_xlim[1]
+                    
+                    y_key = 0.0
+                    y_offset = y_offsets[y_key]
+                    y_final = 0.0 + y_offset
+                    y_offsets[y_key] += y_padding
+                    
+                    ax.text(plot_xmax * 0.95, y_final, '0.0%', 
+                            color=plot_color, fontsize=9, 
+                            va='bottom', ha='right')
+        
+        ax.set_title(title, fontsize=12, fontweight='bold')
+        ax.set_xscale('log')
+        ax.set_ylim(0, 1.01)
+        
+        # Minimal grid: y-axis only
+        ax.grid(True, which="major", axis='y', linestyle=':', linewidth=0.7, color='lightgray')
+        ax.grid(False, which="minor")
+    
+    # Add figure-level labels
+    fig.text(0.5, 0.02, 'Time to Quality Threshold (seconds)', ha='center', va='center', fontsize=12)
+    fig.text(0.04, 0.5, 'Proportion of Instances Solved', ha='center', va='center', rotation='vertical', fontsize=12)
+    
+    # Add figure-level legend in dedicated right margin
+    fig.subplots_adjust(right=0.90)
+    handles, labels = axes[-1].get_legend_handles_labels()
+    fig.legend(handles, labels, 
+               loc='center left',
+               bbox_to_anchor=(0.92, 0.5),
+               ncol=1,
+               fontsize=11)
+    
+    fig.suptitle('Time-to-Quality (TTQ) Profiles Across Multiple Target Gaps', 
+                 fontsize=16, fontweight='bold', y=0.98)
+    
+    plt.tight_layout(rect=(0.05, 0.05, 0.90, 0.96))
+    
+    filename = "ttq_profiles"
+    plt.savefig(Path(IMAGES_DIR) / f"{filename}.png", dpi=300, bbox_inches='tight')
+    plt.savefig(Path(PDFS_DIR) / f"{filename}.pdf", bbox_inches='tight')
+    plt.close(fig)
+    print(f"  ✓ Saved: {filename}.png and {filename}.pdf")
+
+
 def generate_convergence_plot(df: pd.DataFrame, instance: str, output_dir: Path):
     """
     Generate publication-quality convergence plot for a specific instance.
@@ -624,8 +784,12 @@ def generate_convergence_plot(df: pd.DataFrame, instance: str, output_dir: Path)
         # Create alternating light-gray shaded regions
         ax.axvspan(start, end, facecolor='gray', 
                    alpha=0.05 if i % 2 else 0.1, zorder=0)
-        # Place the label at the TOP of the box, out of the data area
-        ax.text((start * end)**0.5, ymax * 0.98, name, 
+        # V7.5: Place labels using axes coordinates for clean positioning
+        # x position: relative to the phase region (0.05 = 5% from left edge)
+        # y position: relative to axes (0.95 = 95% from bottom = top-left)
+        mid_x = (start * end)**0.5  # Geometric mean for log scale
+        ax.text(mid_x, ymax * 0.98, name, 
+                transform=ax.transData,  # Use data coordinates for x, but consider axes for placement
                 ha='center', va='top', fontsize=9, alpha=0.7)
     
     # Readjust y-limit to make space for top-aligned text
@@ -780,10 +944,14 @@ V7 Protocol Improvements (Publication-Defining Quality):
     print("    (v7: perceptual clarity, elegant annotations)")
     generate_pp_plots(df, output_dir)
     
-    print("\n[3] Generating Summary Statistics...")
+    print("\n[3] Generating Time-to-Quality (TTQ) Profiles...")
+    print("    (Multi-gap analysis: 10%, 5%, 1%, 0%)")
+    generate_ttq_plots(df, output_dir)
+    
+    print("\n[4] Generating Summary Statistics...")
     generate_summary_statistics(df, output_dir)
     
-    print("\n[4] Generating Example Convergence Plots...")
+    print("\n[5] Generating Example Convergence Plots...")
     print("    (v7: CRITICAL - target loss benchmark for narrative integration)")
     sample_instances = df['instance'].unique()[:3]
     for instance in sample_instances:
@@ -803,12 +971,14 @@ V7 Protocol Improvements (Publication-Defining Quality):
     print(f"\nPNG files in {Path(IMAGES_DIR).absolute()}:")
     print("  • ttt_combined_by_size.png")
     print("  • ttt_combined_by_category.png")
+    print("  • ttq_profiles.png")
     print("  • performance_profile_combined_by_size.png")
     print("  • performance_profile_overall.png")
     print("  • convergence_*.png (3 examples)")
     print(f"\nPDF files in {Path(PDFS_DIR).absolute()}:")
     print("  • ttt_combined_by_size.pdf")
     print("  • ttt_combined_by_category.pdf")
+    print("  • ttq_profiles.pdf")
     print("  • performance_profile_combined_by_size.pdf")
     print("  • performance_profile_overall.pdf")
     print("  • convergence_*.pdf (3 examples)")
