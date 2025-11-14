@@ -449,7 +449,15 @@ def generate_ttt_plots(df: pd.DataFrame, output_dir: Path):
     fig_size.suptitle('Time-to-Target by Customer Size\n(Target = Best-Found Solution)', 
                        fontsize=16, fontweight='bold', y=0.98)
     
-    plt.tight_layout(rect=(0.08, 0.05, 0.85, 0.96))
+    # Add explanatory footnote about success rates summing to >100%
+    footnote_text = (
+        "Note: Success rates are independent per algorithm and may sum to >100% when multiple algorithms\n"
+        "reach the same best solution. This overlap indicates solution quality convergence between algorithms."
+    )
+    fig_size.text(0.5, 0.01, footnote_text, ha='center', va='bottom', 
+                 fontsize=8, style='italic', color='#555555')
+    
+    plt.tight_layout(rect=(0.08, 0.04, 0.85, 0.96))
     
     filename_size = "ttt_combined_by_size.png"
     filename_size_pdf = "ttt_combined_by_size.pdf"
@@ -559,7 +567,15 @@ def generate_ttt_plots(df: pd.DataFrame, output_dir: Path):
     fig_cat.suptitle('Time-to-Target by Problem Category\n(Target = Best-Found Solution)', 
                       fontsize=16, fontweight='bold', y=1.0)
     
-    plt.tight_layout(rect=(0.08, 0.05, 0.85, 0.96))
+    # Add explanatory footnote about success rates summing to >100%
+    footnote_text = (
+        "Note: Success rates are independent per algorithm and may sum to >100% when multiple algorithms\n"
+        "reach the same best solution. This overlap indicates solution quality convergence between algorithms."
+    )
+    fig_cat.text(0.5, 0.01, footnote_text, ha='center', va='bottom', 
+                fontsize=8, style='italic', color='#555555')
+    
+    plt.tight_layout(rect=(0.08, 0.04, 0.85, 0.96))
     
     filename_cat = "ttt_combined_by_category.png"
     filename_cat_pdf = "ttt_combined_by_category.pdf"
@@ -596,7 +612,7 @@ def generate_ttq_plots(df: pd.DataFrame, output_dir: Path):
     ]
     
     # Create figure with 4 subplots (1x4)
-    fig, axes = plt.subplots(1, 4, figsize=(20, 6), sharey=True)
+    fig, axes = plt.subplots(1, 4, figsize=(20, 8), sharey=True)
     
     max_finite_time = df[df['time_to_target'] != np.inf]['time_to_target'].max()
     if pd.isna(max_finite_time):
@@ -683,7 +699,7 @@ def generate_ttq_plots(df: pd.DataFrame, output_dir: Path):
         ax.grid(False, which="minor")
     
     # Add figure-level labels
-    fig.text(0.5, 0.02, 'Time to Quality Threshold (seconds)', ha='center', va='center', fontsize=12)
+    fig.text(0.5, 0.06, 'Time to Quality Threshold (seconds)', ha='center', va='center', fontsize=12)
     fig.text(0.04, 0.5, 'Proportion of Instances Solved', ha='center', va='center', rotation='vertical', fontsize=12)
     
     # Add figure-level legend in dedicated right margin
@@ -698,7 +714,15 @@ def generate_ttq_plots(df: pd.DataFrame, output_dir: Path):
     fig.suptitle('Time-to-Quality (TTQ) Profiles Across Multiple Target Gaps', 
                  fontsize=16, fontweight='bold', y=0.98)
     
-    plt.tight_layout(rect=(0.05, 0.05, 0.90, 0.96))
+    # Add explanatory footnote about success rates summing to >100%
+    footnote_text = (
+        "Note: Success rates are independent per algorithm and may sum to >100% when multiple algorithms\n"
+        "reach the same quality threshold. This overlap indicates solution convergence between algorithms."
+    )
+    fig.text(0.5, 0.01, footnote_text, ha='center', va='bottom', 
+            fontsize=8, style='italic', color='#555555')
+    
+    plt.tight_layout(rect=(0.05, 0.08, 0.90, 0.96))
     
     filename = "ttq_profiles"
     plt.savefig(Path(IMAGES_DIR) / f"{filename}.png", dpi=300, bbox_inches='tight')

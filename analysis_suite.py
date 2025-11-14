@@ -437,7 +437,10 @@ def generate_pairwise_dominance_heatmap(df: pd.DataFrame):
                 win_matrix.loc[row_alg, col_alg] = 50.0
             else:
                 # Win rate: percentage where row_alg < col_alg (lower is better)
-                win_rate = (pivoted[row_alg] < pivoted[col_alg]).mean() * 100
+                # Account for ties by giving 0.5 to each algorithm
+                wins = (pivoted[row_alg] < pivoted[col_alg]).mean()
+                ties = (pivoted[row_alg] == pivoted[col_alg]).mean()
+                win_rate = (wins + 0.5 * ties) * 100
                 win_matrix.loc[row_alg, col_alg] = win_rate
     
     # Convert to numeric
