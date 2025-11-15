@@ -1,0 +1,5 @@
+Algorithm,Mean Final Loss,Median Final Loss,Difference (%)
+ALNS-Greedy,95282.69,63871.90,49.18
+ALNS-SA,109357.86,89597.50,22.05
+TS (tenure=0),129381.38,111890.10,15.63
+TS (tenure=5),129405.11,111890.10,15.65
