@@ -316,12 +316,12 @@ python3 analysis_suite.py
    - 2×2 grid by customer size (100, 400, 800, 1000)
    - 2×3 grid by problem category (C1, C2, R1, R2, RC1, RC2)
    - Automated label collision prevention
-   - Success rate annotations (e.g., ALNS-Greedy: 77.5%, TS: 0%)
+   - Success rate annotations (e.g., ALNS-Greedy: 76.3%, ALNS-SA: 21.6%, TS: 2.1%)
 
 2. **Performance Profiles** (`performance_profile_combined_by_size.png`, `performance_profile_overall.png`)
    - Dolan-Moré ratio plots (algorithm_loss / best_loss)
    - 2×2 grid by customer size + overall plot
-   - Win rate annotations (ALNS-Greedy finds best in 77.5% of instances)
+   - Win rate annotations (ALNS-Greedy finds best in 76.3% of instances)
    - Elegant leader-line annotations
 
 3. **Convergence Plots** (`convergence_<instance>.png`)
@@ -372,9 +372,10 @@ python3 analysis_suite.py
    - 4×4 win rate matrix (row algorithm beats column algorithm)
    - Diverging colormap centered at 50% (red = row wins, blue = column wins)
    - Quantifies algorithm hierarchy:
-     - ALNS-Greedy: 90.5% average win rate
-     - ALNS-SA: 70.1% average win rate
-     - TS algorithms: ~9-10% average win rate
+     - ALNS-Greedy: 90.0% average win rate
+     - ALNS-SA: 70.2% average win rate
+     - TS (tenure=5): 19.0% average win rate
+     - TS (tenure=0): 20.8% average win rate
 
 #### Summary Statistics
 
@@ -555,17 +556,18 @@ tabu_list.append((customer, old_position, new_position))
 **Algorithm Hierarchy (Based on Dominance Heatmap):**
 1.  **ALNS-Greedy**: Dominant performer. Beats ALNS-SA in **76.7%** of instances and TS in **96.6%**.
 2.  **ALNS-SA**: Strong second. Beats TS in **93.6%** of instances.
-3.  **TS (tenure=0/5)**: Significantly inferior, with **~8-10%** win rates vs. ALNS.
+3.  **TS (tenure=0)** and **TS (tenure=5)**: Weakest performer with **4.9%** average win rate vs. ALNS.
 
 **Time-to-Target (Finding Best-Known Solution):**
-* **ALNS-Greedy**: **76.3%** success rate.
-* **ALNS-SA**: **21.8%** success rate.
-* **TS (tenure=0/5)**: **1.1%** success rate.
+* **ALNS-Greedy**: **76.3%** success rate (180/236 instances).
+* **ALNS-SA**: **21.6%** success rate (51/236 instances).
+* **TS (tenure=0)**: **2.1%** success rate (5/236 instances).
+* **TS (tenure=5)**: **2.1%** success rate (5/236 instances).
 
 **Time-to-Quality (Finding Near-Optimal Solutions):**
-* **10% Gap (Easy)**: **ALNS-Greedy (93.4%)** and **ALNS-SA (85.8%)** excel. TS already struggles (15-18%).
-* **5% Gap**: ALNS-Greedy (93.4%) remains strong; ALNS-SA drops to 58.1%. TS falls to ~7-10%.
-* **1% Gap (Hard)**: **ALNS-Greedy (81.7%)** is the only robust algorithm. ALNS-SA (27.7%) and TS (~1-3%) fail.
+* **10% Gap (Easy)**: **ALNS-Greedy (97.9%)** dominates. **ALNS-SA (55.5%)** is moderate. TS already struggles (18.2%).
+* **5% Gap**: ALNS-Greedy (92.8%) remains strong; ALNS-SA drops to 38.1%. TS falls to 10.2%.
+* **1% Gap (Hard)**: **ALNS-Greedy (81.4%)** is the only robust algorithm. ALNS-SA (27.1%) and TS (3.0%) fail.
 
 **Distribution Characteristics (Violin Plots):**
 * ALNS algorithms achieve better (lower) median losses.

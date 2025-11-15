@@ -1,7 +1,6 @@
 # Python build artifacts
 __pycache__/
 *.pyc
-# logs/*/execution
 
 # Virtual environment
 venv/
