@@ -88,42 +88,6 @@ def load_and_prepare_data():
 # PART 1: DISTRIBUTIONAL ANALYSIS
 # ============================================================================
 
-def generate_mean_vs_median_comparison(df: pd.DataFrame):
-    """
-    Generate a comparison table showing Mean vs. Median for final_loss.
-    This quantifies the skew in the distribution.
-    """
-    print("\n" + "="*80)
-    print("PART 1: DISTRIBUTIONAL ANALYSIS")
-    print("="*80)
-    print("\n[1.1] Mean vs. Median Comparison Table")
-    print("-"*80)
-    
-    comparison_data = []
-    for alg in sorted(df['Algorithm'].unique()):
-        alg_data = df[df['Algorithm'] == alg]['final_loss']
-        comparison_data.append({
-            'Algorithm': alg,
-            'Mean Final Loss': alg_data.mean(),
-            'Median Final Loss': alg_data.median(),
-            'Difference (%)': ((alg_data.mean() - alg_data.median()) / alg_data.median() * 100)
-        })
-    
-    comparison_df = pd.DataFrame(comparison_data)
-    
-    # Print as Markdown table
-    print("\n| Algorithm | Mean Final Loss | Median Final Loss | Difference (%) |")
-    print("|-----------|-----------------|-------------------|----------------|")
-    for _, row in comparison_df.iterrows():
-        print(f"| {row['Algorithm']} | {row['Mean Final Loss']:.2f} | {row['Median Final Loss']:.2f} | {row['Difference (%)']:+.2f}% |")
-    
-    # Save to CSV
-    comparison_df.to_csv(Path(SUMMARIES_DIR) / 'mean_vs_median_comparison.csv', index=False, float_format='%.2f')
-    print(f"\n✓ Saved to {Path(SUMMARIES_DIR) / 'mean_vs_median_comparison.csv'}")
-    
-    return comparison_df
-
-
 def generate_violin_plot_by_size(df: pd.DataFrame):
     """
     Create violin plots showing final_loss distribution by customer size.
@@ -511,7 +475,6 @@ def main():
     df = load_and_prepare_data()
     
     # PART 1: Distributional Analysis
-    generate_mean_vs_median_comparison(df)
     generate_violin_plot_by_size(df)
     generate_violin_plot_by_category(df)
     

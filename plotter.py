@@ -838,18 +838,39 @@ def generate_summary_statistics(df: pd.DataFrame, output_dir: Path):
     # Overall summary with clean formatting
     print("\n  Overall Algorithm Performance")
     overall_stats = []
+    
+    # Group by Algorithm AND Customer Size
+    # Order: Algorithm, then Customer Size
     for alg in sorted(df['algorithm'].unique()):
-        alg_data = df[df['algorithm'] == alg]
-        overall_stats.append({
-            'Algorithm': ALGORITHM_LABELS.get(alg, alg),
-            'Instances': len(alg_data),
-            'Avg_Loss': alg_data['final_loss'].mean(),
-            'Std_Loss': alg_data['final_loss'].std(),
-            'Min_Loss': alg_data['final_loss'].min(),
-            'Max_Loss': alg_data['final_loss'].max(),
-            'Avg_Time': alg_data['final_time'].mean(),
-            'Std_Time': alg_data['final_time'].std()
-        })
+        for size in sorted(df['cust_size'].unique()):
+            subset = df[(df['algorithm'] == alg) & (df['cust_size'] == size)]
+            
+            if len(subset) == 0:
+                continue
+                
+            avg_loss = subset['final_loss'].mean()
+            min_loss = subset['final_loss'].min()
+            max_loss = subset['final_loss'].max()
+            
+            # Calculate improvement
+            # Mean start loss for this group
+            mean_start_loss = subset['start_loss'].mean()
+            
+            # Improvement % = (Start - Final) / Start * 100
+            if mean_start_loss != 0:
+                improvement = ((mean_start_loss - avg_loss) / mean_start_loss) * 100
+            else:
+                improvement = 0.0
+            
+            overall_stats.append({
+                'Algorithm': ALGORITHM_LABELS.get(alg, alg),
+                'Customer_Size': size,
+                'Avg_Loss': avg_loss,
+                'Min_Loss': min_loss,
+                'Max_Loss': max_loss,
+                'Improvement': improvement
+            })
+            
     overall_df = pd.DataFrame(overall_stats)
     print(overall_df.to_string(index=False))
     overall_df.to_csv(Path(SUMMARIES_DIR) / 'summary_overall.csv', index=False, float_format='%.2f')
@@ -975,13 +996,6 @@ V7 Protocol Improvements (Publication-Defining Quality):
     print("\n[4] Generating Summary Statistics...")
     generate_summary_statistics(df, output_dir)
     
-    print("\n[5] Generating Example Convergence Plots...")
-    print("    (v7: CRITICAL - target loss benchmark for narrative integration)")
-    sample_instances = df['instance'].unique()[:3]
-    for instance in sample_instances:
-        print(f"  Generating convergence plot for {instance}")
-        generate_convergence_plot(df, instance, output_dir)
-    
     # --- Optionally Generate All Individual Plots ---
     if args.all_plots:
         print("\n[5] Generating all individual plots (due to --all-plots flag)...")
@@ -998,14 +1012,12 @@ V7 Protocol Improvements (Publication-Defining Quality):
     print("  • ttq_profiles.png")
     print("  • performance_profile_combined_by_size.png")
     print("  • performance_profile_overall.png")
-    print("  • convergence_*.png (3 examples)")
     print(f"\nPDF files in {Path(PDFS_DIR).absolute()}:")
     print("  • ttt_combined_by_size.pdf")
     print("  • ttt_combined_by_category.pdf")
     print("  • ttq_profiles.pdf")
     print("  • performance_profile_combined_by_size.pdf")
     print("  • performance_profile_overall.pdf")
-    print("  • convergence_*.pdf (3 examples)")
     print(f"\nCSV files in {Path(SUMMARIES_DIR).absolute()}:")
     print("  • summary_overall.csv")
     print("  • summary_by_size.csv")
