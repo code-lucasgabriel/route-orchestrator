@@ -163,6 +163,8 @@ def parse_log_file(log_path: Path) -> dict | None:
         loss_history = np.array(loss_history, dtype=np.float64)
         time_history = np.array(time_history, dtype=np.float64)
         
+        start_loss = loss_history[0] if len(loss_history) > 0 else final_loss
+        
         # 5. Assemble the record
         record = {
             'algorithm': algorithm,
@@ -171,6 +173,7 @@ def parse_log_file(log_path: Path) -> dict | None:
             'cust_size': cust_size,
             'final_loss': final_loss,
             'final_time': final_time,
+            'start_loss': start_loss,
             'loss_history': loss_history,
             'time_history': time_history,
             'final_solution': final_solution

@@ -29,7 +29,6 @@ Route Orchestrator implements a complete metaheuristic optimization framework fe
 - [Data Structure](#data-structure)
 - [Algorithm Details](#algorithm-details)
 - [Benchmark Results](#benchmark-results)
-- [Advanced Usage](#advanced-usage)
 - [Citation](#citation)
 
 ---
@@ -81,7 +80,6 @@ Route Orchestrator implements a complete metaheuristic optimization framework fe
 #### Advanced Distributional Analysis
 
 - **Violin Plots** - Full loss distribution visualization by customer size and problem category
-- **Mean vs. Median Comparison** - Quantifies distribution skew (ALNS-Greedy: +49.18% difference)
 - **Log-scale Y-axis** - Handles different magnitude scales across instance types
 - **Inner Box Plots** - Shows quartiles and outliers within distributions
 
@@ -312,11 +310,13 @@ python3 analysis_suite.py
 #### Core Performance Metrics
 
 1. **Time-to-Target (TTT) Plots** (`ttt_combined_by_size.png`, `ttt_combined_by_category.png`)
-   - Step-function ECDFs showing probability of reaching best-found solution
+   - Step-function ECDFs showing probability of reaching best-found solution over time
    - 2×2 grid by customer size (100, 400, 800, 1000)
    - 2×3 grid by problem category (C1, C2, R1, R2, RC1, RC2)
    - Automated label collision prevention
    - Success rate annotations (e.g., ALNS-Greedy: 76.3%, ALNS-SA: 21.6%, TS: 2.1%)
+
+   ![Time-to-Target by Size](plots/images/ttt_combined_by_size.png)
 
 2. **Performance Profiles** (`performance_profile_combined_by_size.png`, `performance_profile_overall.png`)
    - Dolan-Moré ratio plots (algorithm_loss / best_loss)
@@ -324,28 +324,28 @@ python3 analysis_suite.py
    - Win rate annotations (ALNS-Greedy finds best in 76.3% of instances)
    - Elegant leader-line annotations
 
-3. **Convergence Plots** (`convergence_<instance>.png`)
-   - Solution quality evolution over time
-   - Target benchmark from TTT (horizontal dotted line)
-   - Shaded search phases (Initial Descent, Intensive Search, Local Refinement)
-   - Explains why TS algorithms never reach target
+   ![Performance Profile Overall](plots/images/performance_profile_overall.png)
 
-4. **Time-to-Quality (TTQ) Profiles** (`ttq_profiles.png`)
+3. **Time-to-Quality (TTQ) Profiles** (`ttq_profiles.png`)
    - Success rates at 4 target gaps: 10%, 5%, 1%, 0%
    - Shows algorithm performance from easy to exact targets
    - 1×4 subplot layout with shared y-axis
    - Reveals quality threshold breakdown points
 
+   ![Time-to-Quality Profiles](plots/images/ttq_profiles.png)
+
 #### Advanced Distributional Analysis
 
-5. **Violin Plots by Size** (`distribution_by_size.png`)
+4. **Violin Plots by Size** (`distribution_by_size.png`)
    - Full loss distribution shapes (not just means)
    - 2×2 grid by customer size
    - Inner box plots show quartiles
    - Log scale y-axis handles different magnitudes
    - Reveals right-skewed distributions (outliers push mean higher)
 
-6. **Violin Plots by Category** (`distribution_by_category.png`)
+   ![Distribution by Size](plots/images/distribution_by_size.png)
+
+5. **Violin Plots by Category** (`distribution_by_category.png`)
    - Distribution characteristics per problem type
    - 2×3 grid by category
    - Shows category-specific performance patterns
@@ -353,14 +353,16 @@ python3 analysis_suite.py
 
 #### Aggregated Temporal Analysis
 
-7. **Median Convergence by Size** (`convergence_aggregated_by_size.png`)
+6. **Median Convergence by Size** (`convergence_aggregated_by_size.png`)
    - Aggregates all 236 instances into median behavior
    - IQR bands (25th-75th percentile, shaded regions)
    - 2×2 grid by customer size
    - Log-log scale reveals convergence patterns
    - Shows TS plateau behavior explaining 0% TTT success
 
-8. **Median Convergence by Category** (`convergence_aggregated_by_category.png`)
+   ![Aggregated Convergence by Size](plots/images/convergence_aggregated_by_size.png)
+
+7. **Median Convergence by Category** (`convergence_aggregated_by_category.png`)
    - Category-specific convergence patterns
    - 2×3 grid layout
    - Same median + IQR approach
@@ -368,7 +370,7 @@ python3 analysis_suite.py
 
 #### Advanced Narrative Integration
 
-9. **Pairwise Dominance Heatmap** (`heatmap_dominance_overall.png`)
+8. **Pairwise Dominance Heatmap** (`heatmap_dominance_overall.png`)
    - 4×4 win rate matrix (row algorithm beats column algorithm)
    - Diverging colormap centered at 50% (red = row wins, blue = column wins)
    - Quantifies algorithm hierarchy:
@@ -377,13 +379,14 @@ python3 analysis_suite.py
      - TS (tenure=5): 19.0% average win rate
      - TS (tenure=0): 20.8% average win rate
 
+   ![Dominance Heatmap](plots/images/heatmap_dominance_overall.png)
+
 #### Summary Statistics
 
-10. **CSV Reports** (`plots/summaries/`)
+9. **CSV Reports** (`plots/summaries/`)
     - `summary_overall.csv` - Mean, std, min, max per algorithm (236 instances each)
     - `summary_by_size.csv` - Performance broken down by customer size
     - `summary_by_category.csv` - Performance broken down by problem category
-    - `mean_vs_median_comparison.csv` - Quantifies distribution skew
 
 ### Visual Design Principles
 
@@ -544,12 +547,24 @@ tabu_list.append((customer, old_position, new_position))
 
 ### Overall Performance (236 Instances)
 
-| Algorithm | Median Loss | Mean Loss | Std Loss | Min Loss | Max Loss | Avg Time (s) |
-|-----------|-------------|-----------|----------|----------|----------|--------------|
-| **ALNS-Greedy** | **63,871.90** | **95,282.69** | 83,664.69 | 1,086.32 | 299,352.04 | 527.25 |
-| ALNS-SA | 89,597.50 | 109,357.86 | 95,482.11 | 1,198.36 | 325,493.33 | 507.78 |
-| TS (tenure=0) | 111,890.10 | 129,381.38 | 110,586.21 | 1,192.92 | 358,469.51 | 557.35 |
-| TS (tenure=5) | 111,890.10 | 129,405.11 | 110,592.60 | 1,192.92 | 358,469.51 | 554.18 |
+| Algorithm | Customer Size | Avg Loss | Min Loss | Max Loss | Improvement (%) |
+|-----------|---------------|----------|----------|----------|-----------------|
+| ALNS-SA | 100 | 3,326.39 | 1,198.36 | 6,623.74 | 31.98% |
+| ALNS-SA | 400 | 40,317.59 | 11,543.06 | 54,965.04 | 28.50% |
+| ALNS-SA | 800 | 151,204.58 | 88,264.71 | 227,624.06 | 19.38% |
+| ALNS-SA | 1000 | 235,514.11 | 152,076.33 | 325,493.33 | 14.62% |
+| ALNS-Greedy | 100 | 3,329.57 | 1,086.32 | 6,405.85 | 31.92% |
+| ALNS-Greedy | 400 | 38,565.21 | 8,190.58 | 57,616.02 | 31.60% |
+| ALNS-Greedy | 800 | 130,381.04 | 62,347.45 | 195,723.34 | 30.48% |
+| ALNS-Greedy | 1000 | 202,724.71 | 112,140.96 | 299,352.04 | 26.50% |
+| TS (tenure=0) | 100 | 3,468.06 | 1,192.92 | 6,265.00 | 29.08% |
+| TS (tenure=0) | 400 | 49,945.60 | 15,746.73 | 71,824.43 | 11.42% |
+| TS (tenure=0) | 800 | 183,201.67 | 108,235.77 | 238,112.40 | 2.31% |
+| TS (tenure=0) | 1000 | 272,515.98 | 189,600.81 | 358,469.51 | 1.20% |
+| TS (tenure=5) | 100 | 3,468.43 | 1,192.92 | 6,265.00 | 29.08% |
+| TS (tenure=5) | 400 | 49,986.04 | 15,689.64 | 71,957.89 | 11.35% |
+| TS (tenure=5) | 800 | 183,215.16 | 108,235.77 | 238,112.40 | 2.31% |
+| TS (tenure=5) | 1000 | 272,555.03 | 189,600.81 | 358,469.51 | 1.19% |
 
 ### Key Findings
 
@@ -579,110 +594,12 @@ tabu_list.append((customer, old_position, new_position))
 
 **Performance by Category:**
 * **Pattern**: ALNS dominance is consistent across *all* problem categories (C1, C2, R1, R2, RC1, RC2).
-* **Difficulty**: **C2** appears to be the easiest category (lowest losses), while **R2** and **RC2** are among the most difficult (highest losses).
+* **Difficulty**: **C2** and **R2** appear to be the easiest categories (lowest losses), while **RC2** is the most difficult (highest losses).
 
 **Convergence Behavior:**
 * **ALNS-Greedy (light blue)**: Fastest and deepest convergence to the best solutions.
 * **ALNS-SA (dark blue)**: Steady convergence to a high-quality solution, slightly worse than Greedy.
 * **TS (orange/brown)**: **Plateaus very early** (10-50 seconds) at a poor objective value, explaining its low success rates.
-
----
-
-## Advanced Usage
-
-### Single Instance Execution
-
-```python
-from solver.hffvrptw import HFFVRPTWProblem, HFFVRPTWEvaluator, HFFVRPTWConstructiveHeuristic
-from solver.metaheuristics.alns import alns_greedy_lns
-
-# Load instance
-problem = HFFVRPTWProblem()
-problem.read_instance("data/instances/100_customers/C1_1_01.csv")
-
-# Create evaluator
-evaluator = HFFVRPTWEvaluator(problem)
-
-# Generate initial solution
-constructor = HFFVRPTWConstructiveHeuristic(problem, evaluator)
-initial_sol = constructor.build()
-
-# Run ALNS
-best_sol, best_cost = alns_greedy_lns(initial_sol, evaluator, problem, time_limit=600)
-
-print(f"Best cost: {best_cost}")
-print(f"Routes: {best_sol}")
-```
-
-### Custom Instance Selection
-
-Edit `settings.py`:
-
-```python
-# Run only 100-customer instances
-INSTANCES = [f"100_customers/{f}" for f in os.listdir("data/instances/100_customers")]
-
-# Run specific instances
-INSTANCES = [
-    "100_customers/C1_1_01.csv",
-    "100_customers/R1_1_01.csv",
-    "400_customers/C1_4_1.csv"
-]
-```
-
-### Custom Time Limit
-
-Edit `settings.py`:
-
-```python
-TIME_LIMIT = 300  # 5 minutes per instance
-# TIME_LIMIT = 1200  # 20 minutes per instance
-```
-
-### Parallel Processing Configuration
-
-```python
-# In main.py
-run_batch(num_workers=4)  # Use 4 cores
-run_batch(num_workers=None)  # Use CPU cores - 1 (default)
-```
-
-### Regenerate Specific Plots
-
-```python
-# In plotter.py or analysis_suite.py, comment out unwanted functions:
-
-# Skip TTT plots
-# generate_ttt_plots(df, output_dir)
-
-# Only generate heatmap
-generate_pairwise_dominance_heatmap(df)
-```
-
-### Custom Plotting
-
-```python
-import pandas as pd
-import matplotlib.pyplot as plt
-
-# Load parsed results
-df = pd.read_parquet('results.parquet')
-
-# Custom analysis
-custom_subset = df[df['cust_size'] == 100]
-custom_subset.groupby('algorithm')['final_loss'].mean()
-
-# Custom plot
-plt.figure(figsize=(10, 6))
-for alg in df['algorithm'].unique():
-    data = df[df['algorithm'] == alg]['final_loss']
-    plt.hist(data, alpha=0.5, label=alg, bins=30)
-plt.legend()
-plt.xlabel('Final Loss')
-plt.ylabel('Frequency')
-plt.title('Loss Distribution by Algorithm')
-plt.savefig('custom_plot.png', dpi=300)
-```
 
 ---
 
